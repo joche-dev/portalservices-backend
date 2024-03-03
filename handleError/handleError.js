@@ -3,8 +3,13 @@ export const handleError = (code) => {
     switch (code) {
         case "22P02":
             return {
-            status: 400,
-            message: "Formato no válido en el parámetro",
+                status: 400,
+                message: "Formato no válido en el parámetro",
+        };
+        case "42703":
+            return {
+                status: 400,
+                message: "Campo no existente en la tabla",
         };
         case 23502:
             return {
