@@ -12,5 +12,10 @@ router.post("/login", portalController.login);
 // POST /register
 router.post("/register", reportarConsulta, verificarInput, portalController.register);
 
+// GET /servicios
 
-export default router
+router.get("/servicios",reportarConsulta, portalController.services);
+
+
+
+export default router;

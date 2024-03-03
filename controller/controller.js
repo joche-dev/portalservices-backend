@@ -1,6 +1,6 @@
 import Jwt from 'jsonwebtoken';
 import bcrypt from "bcryptjs";
-import { registrarUsuario, verificarCredencial } from '../database/consultas.js';
+import { registrarUsuario, verificarCredencial, obtenerServicios, prepararHATEOAS } from '../database/consultas.js';
 import { handleError } from '../handleError/handleError.js';
 
 const login = async (req, res) =>{
@@ -57,6 +57,25 @@ const register = async (req, res) =>{
     }
 }
 
+const services = async (req, res) => {
+    try {
+        const {page} = req.query;
+        const isPageValid = /^[1-9]\d*$/.test(page);
+
+        if (!isPageValid) {
+            return res.status(400).json({ message: "Invalid page number, number > 0" });
+        }
+
+        const publicaciones = await obtenerServicios({page});
+
+        const HATEOAS = await prepararHATEOAS(publicaciones, limits, page )
+        res.json(HATEOAS); // respuesta del servidor
+
+    } catch (error) {
+        const { status, message } = handleError(error.code);
+        return res.status(status).json({ ok: false, result: message })
+    }
+}
 export const portalController = {
-    register, login
+    register, login, services
 }
