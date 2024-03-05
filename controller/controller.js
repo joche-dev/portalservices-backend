@@ -28,7 +28,7 @@ const login = async (req, res) =>{
             throw {code:401, message: "Contraseña incorrecta del usuario" };
         } 
         
-        const token=Jwt.sign({ email, userContraseña }, process.env.JWT_PASSWORD); 
+        const token=Jwt.sign({ email }, process.env.JWT_PASSWORD); 
         console.log("Token generado en Login: ", token);
         res.status(200).json({  token: token, 
                                 ok:true,
@@ -44,9 +44,10 @@ const login = async (req, res) =>{
 
 const register = async (req, res) =>{
     try {
-        let { nombre, email, contraseña, ciudad, comuna, direccion,  rol } = req.body;
+        let { nombre, email, contraseña, ciudad, comuna, direccion = '',  rol='user' } = req.body;
         console.log("password original: ", contraseña);
         console.log("antes de encriptar la contraseña");
+
         const contraseñaEncriptada = await bcrypt.hash(contraseña, 10);
         console.log("password encriptada: ", contraseñaEncriptada);
         await registrarUsuario(nombre, email, contraseñaEncriptada, ciudad, comuna, direccion, rol);
@@ -68,7 +69,8 @@ const services = async (req, res) => {
 
         const publicaciones = await obtenerServicios({page});
 
-        const HATEOAS = await prepararHATEOAS(publicaciones, limits, page )
+        console.log("antes de entrar al hateoas", publicaciones);
+        const HATEOAS = await prepararHATEOAS(publicaciones, page )
         res.json(HATEOAS); // respuesta del servidor
 
     } catch (error) {
@@ -76,6 +78,7 @@ const services = async (req, res) => {
         return res.status(status).json({ ok: false, result: message })
     }
 }
+
 export const portalController = {
     register, login, services
 }

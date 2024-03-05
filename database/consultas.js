@@ -1,6 +1,8 @@
 import pkg from 'pg';
 import format from 'pg-format';
 
+const URL_BASE = process.env.URL_BASE;
+
 const { Pool } = pkg;
 
 const pool = new Pool({
@@ -11,7 +13,11 @@ const registrarUsuario = async (nombre, email, contraseña, ciudad, comuna, dire
     const values = [nombre, email, contraseña, ciudad, comuna, direccion, rol];
     console.log(values); 
     const consulta = "INSERT INTO usuarios values (DEFAULT, $1, $2, $3, $4, $5, $6, $7)" 
-    await pool.query(consulta, values); 
+    const { rowCount }= await pool.query(consulta, values);
+    if(!rowCount){
+        throw { code: 404, message: "registro fallido" }
+    }
+    return { code: 201, message: "registro exitoso" }
 }
 
 const comprobarRegistroByEmail = async (email) => {
@@ -34,9 +40,10 @@ const verificarCredencial = async (email) => {
     return user
 }
 
-const obtenerServicios = async ({ limits = 20, order_by = "publicacionId_DESC", page = 1 }) => {
-    console.log("entró a la consulta");
-    const [campo, direccion] = order_by.split("_")
+const obtenerServicios = async ({ limits = 8, page = 1 }) => {
+    const campo = "publicacion_id";
+    const direccion = "DESC";
+
     //const offset = page * limits // iniciar en pagina 0
     if(page <= 0){
         page=1;
@@ -51,15 +58,24 @@ const obtenerServicios = async ({ limits = 20, order_by = "publicacionId_DESC", 
     return publicaciones
 }
 
-const prepararHATEOAS = async (publicaciones, limits=20, page=1) => {
+const prepararHATEOAS = async (publicaciones, page=1, limits=8) => {
 
 
     // ya con pagina y limites
-    const results = publicaciones.map((j) => {
+    const results = publicaciones.map((p) => {
         return {
-            name: j.nombre,
-            price: j.precio,
-            url: `http://localhost:3000/servicios/${j.id}`,
+            usuarioId: p.usuarioId,
+            publicacionId: p.publicacionId,
+            titulo: p.titulo,
+            contenido: p.contenido,
+            imagen: p.imagen,
+            tipoServicio: p.tipoServicio,
+            emailContacto: p.emailContacto,
+            telefonoContacto: p.telefonoContacto,
+            ciudad: p.ciudad,
+            comuna: p.comuna,
+            fechaPublicacion: p.fechaPublicacion,
+            likes: p.likes
         }
     })
 
@@ -77,22 +93,21 @@ const prepararHATEOAS = async (publicaciones, limits=20, page=1) => {
     //HATEOAS COMO RESPUESTA
     const HATEOAS = {
         ok: true,
-        total,
         results, 
         meta: {
-            total: total,
+            total_publicaciones: total,
             limit: parseInt(limits),
             page: parseInt(page),
             total_pages: total_pages,
             next:
                 total_pages <= page
                     ? null
-                    : `http://localhost:3000/servicios?limits=${limits}&page=${parseInt(page) + 1
+                    : `http://${URL_BASE}/servicios?&page=${parseInt(page) + 1
                     }`,
             previous:
                 page <= 1
                     ? null
-                    : `http://localhost:3000/servicios?limits=${limits}&page=${parseInt(page) - 1
+                    : `http://${URL_BASE}/servicios?&page=${parseInt(page) - 1
                     }`,
         }
     }
