@@ -6,7 +6,7 @@ const router = Router();
 
 
 // POST /usuarios
-router.post("/login", portalController.login);
+router.post("/login", reportarConsulta, portalController.login);
 
 
 // POST /register
