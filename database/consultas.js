@@ -21,11 +21,9 @@ const registrarUsuario = async (nombre, email, contraseña, ciudad, comuna, dire
 }
 
 const comprobarRegistroByEmail = async (email) => {
-    console.log("entró en la comprobacion del email");
     const consulta = "SELECT * FROM usuarios WHERE email = $1" 
     const values = [email];
     const { rows: [usuario], rowCount } = await pool.query(consulta, values);
-    console.log(rowCount);
     if (rowCount) throw { code: 406, message: "Email registrado en la tabla" }
 }
 
@@ -34,9 +32,7 @@ const verificarCredencial = async (email) => {
     const values = [email];
     const { rowCount, rows: [user]  } = await pool.query(consulta, values)
     console.log("user y rowCount en verificarCredenciales: ", { user, rowCount });
-
     if (!rowCount) throw { code: 404, message: "No se encontró ningún usuario con estas credenciales" }
-
     return user
 }
 
@@ -49,13 +45,27 @@ const obtenerServicios = async ({ limits = 8, page = 1 }) => {
         page=1;
     }
     const offset = (page - 1) * limits // iniciar en pagina 1
-    console.log(campo, direccion);
 
     const formattedQuery = format('SELECT * FROM publicaciones order by %s %s LIMIT %s OFFSET %s', campo, direccion, limits, offset);
 
     const { rows: publicaciones } = await pool.query(formattedQuery)
     console.log("se hizo la consulta", publicaciones);
     return publicaciones
+}
+
+const obtenerPublicaciones = async ({ id, limits = 8, page = 1 }) => {
+    const campo = "publicacion_id";
+    const direccion = "DESC";
+    //const offset = page * limits // iniciar en pagina 0
+    if(page <= 0){
+        page=1;
+    }
+    const offset = (page - 1) * limits // iniciar en pagina 1
+    const formattedQuery = format('SELECT * FROM publicaciones JOIN usuario ON publicaciones.usuario_id = usuarios.usuario_id WHERE usuarios.usuario_id = $1 order by %s %s LIMIT %s OFFSET %s', id ,campo, direccion, limits, offset);
+    const { rows: publicaciones } = await pool.query(formattedQuery)
+    console.log("se hizo la consulta", publicaciones);
+    return publicaciones
+
 }
 
 const prepararHATEOAS = async (publicaciones, page=1, limits=8) => {
@@ -117,4 +127,4 @@ const prepararHATEOAS = async (publicaciones, page=1, limits=8) => {
     return HATEOAS
 }
 
-export { registrarUsuario, comprobarRegistroByEmail, verificarCredencial, obtenerServicios, prepararHATEOAS }
+export { registrarUsuario, comprobarRegistroByEmail, verificarCredencial, obtenerServicios, prepararHATEOAS, obtenerPublicaciones }

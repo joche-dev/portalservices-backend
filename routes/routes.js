@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { portalController } from "../controller/controller.js";
-import { reportarConsulta, verificarInput } from "../midlewares/midleware.js";
+import { reportarConsulta, verificarCredenciales, verificarInput } from "../midlewares/midleware.js";
+
 
 const router = Router();
 
@@ -15,6 +16,10 @@ router.post("/register", reportarConsulta, verificarInput, portalController.regi
 // GET /servicios
 
 router.get("/servicios",reportarConsulta, portalController.services);
+
+//GET /user/servicios (ruta privada)
+
+router.get("/user/servicios", reportarConsulta, verificarCredenciales, portalController.publicaciones_user)
 
 
 

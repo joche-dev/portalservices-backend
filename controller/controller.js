@@ -1,6 +1,6 @@
 import Jwt from 'jsonwebtoken';
 import bcrypt from "bcryptjs";
-import { registrarUsuario, verificarCredencial, obtenerServicios, prepararHATEOAS } from '../database/consultas.js';
+import { registrarUsuario, verificarCredencial, obtenerServicios, prepararHATEOAS, obtenerPublicaciones } from '../database/consultas.js';
 import { handleError } from '../handleError/handleError.js';
 
 const login = async (req, res) =>{
@@ -79,6 +79,21 @@ const services = async (req, res) => {
     }
 }
 
+const publicaciones_user = async (req, res) => {
+    try {
+        const {email}= req.body;
+        console.log(email);
+        const { usuario_id } = await verificarCredencial(email);
+        const publicaciones = obtenerPublicaciones({ usuario_id });
+        console.log(publicaciones);
+        res.status(200).json([user]);
+
+    } catch (error) {
+        const { status, message } = handleError(error.code);
+        return res.status(status).json({ ok: false, result: message })
+    }
+    
+}
 export const portalController = {
-    register, login, services
+    register, login, services, publicaciones_user
 }
