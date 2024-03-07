@@ -32,8 +32,7 @@ const verificarCredencial = async (email) => {
     const values = [email];
     const { rowCount, rows: [user]  } = await pool.query(consulta, values)
     console.log("user y rowCount en verificarCredenciales: ", { user, rowCount });
-    if (!rowCount) throw { code: 404, message: "No se encontró ningún usuario con estas credenciales" }
-    return user
+    return ({rowCount, user});
 }
 
 const obtenerServicios = async ({ limits = 8, page = 1 }) => {
@@ -53,7 +52,8 @@ const obtenerServicios = async ({ limits = 8, page = 1 }) => {
     return publicaciones
 }
 
-const obtenerPublicaciones = async ({ id, limits = 8, page = 1 }) => {
+const obtenerPublicaciones = async ({ id, limits = 20, page = 1 }) => {
+    console.log("entro al obtener publicaciones");
     const campo = "publicacion_id";
     const direccion = "DESC";
     //const offset = page * limits // iniciar en pagina 0
@@ -66,6 +66,15 @@ const obtenerPublicaciones = async ({ id, limits = 8, page = 1 }) => {
     console.log("se hizo la consulta", publicaciones);
     return publicaciones
 
+}
+
+const agregar_publicacion= async (usuario_id, titulo, contenido, imagen, tipo_servicio, email_contacto, telefono_contacto, ciudad, comuna, fecha_publicacion) => {
+    const likes = 0;
+    const values = [usuario_id, titulo, contenido, imagen, tipo_servicio, email_contacto, telefono_contacto, ciudad, comuna,likes, fecha_publicacion];
+    const consulta = "INSERT INTO publicaciones values (DEFAULT, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)" 
+    const { rowCount } = await pool.query(consulta, values); 
+    
+    return rowCount;
 }
 
 const prepararHATEOAS = async (publicaciones, page=1, limits=8) => {
@@ -127,4 +136,4 @@ const prepararHATEOAS = async (publicaciones, page=1, limits=8) => {
     return HATEOAS
 }
 
-export { registrarUsuario, comprobarRegistroByEmail, verificarCredencial, obtenerServicios, prepararHATEOAS, obtenerPublicaciones }
+export { registrarUsuario, comprobarRegistroByEmail, verificarCredencial, obtenerServicios, prepararHATEOAS, obtenerPublicaciones, agregar_publicacion }

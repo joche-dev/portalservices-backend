@@ -1,6 +1,6 @@
 import Jwt from 'jsonwebtoken';
 import bcrypt from "bcryptjs";
-import { registrarUsuario, verificarCredencial, obtenerServicios, prepararHATEOAS, obtenerPublicaciones } from '../database/consultas.js';
+import { registrarUsuario, verificarCredencial, obtenerServicios, prepararHATEOAS, obtenerPublicaciones, agregar_publicacion } from '../database/consultas.js';
 import { handleError } from '../handleError/handleError.js';
 
 const login = async (req, res) =>{
@@ -38,7 +38,7 @@ const login = async (req, res) =>{
     } catch (error) {
         console.log(error);
         const { status, message } = handleError(error.code);
-        return res.status(status).json({ ok: false, result: message })
+        return res.status(status).json({ ok: false, message: message })
     }
 }
 
@@ -54,7 +54,7 @@ const register = async (req, res) =>{
         res.status(201).json({ok: true, message: "Usuario registrado con exito"});
     } catch (error) {
         const { status, message } = handleError(error.code);
-        return res.status(status).json({ ok: false, result: message })
+        return res.status(status).json({ ok: false, message: message })
     }
 }
 
@@ -75,7 +75,7 @@ const services = async (req, res) => {
 
     } catch (error) {
         const { status, message } = handleError(error.code);
-        return res.status(status).json({ ok: false, result: message })
+        return res.status(status).json({ ok: false, message: message })
     }
 }
 
@@ -83,17 +83,48 @@ const publicaciones_user = async (req, res) => {
     try {
         const {email}= req.body;
         console.log(email);
-        const { usuario_id } = await verificarCredencial(email);
-        const publicaciones = obtenerPublicaciones({ usuario_id });
+        
+        const { rowCount, rows: [user] } = await verificarCredencial(email);
+        console.log("antes de la validacion de no se encontró registro");
+        if (!rowCount) throw { code: 404, message: "No se encontró ningún usuario con estas credenciales"}
+        console.log("despues de la validacion de no se encontró registro");
+        const usuario_id= user.usuario_id;
+        console.log("este es el usuario ID", usuario_id);
+        const publicaciones = await obtenerPublicaciones({ usuario_id });
+        
         console.log(publicaciones);
-        res.status(200).json([user]);
+        res.status(200).json([publicaciones]);
 
     } catch (error) {
         const { status, message } = handleError(error.code);
-        return res.status(status).json({ ok: false, result: message })
+        return res.status(status).json({ ok: false, message: message })
+    }
+    
+}
+
+const nueva_publicacion = async (req, res) => {
+
+    try {
+        const { usuario_id, titulo, contenido, imagen, tipo_servicio, email_contacto, telefono_contacto, ciudad, comuna, fecha_publicacion  } = req.body;
+
+        if (!usuario_id || !titulo || !contenido || !imagen || !tipo_servicio || !email_contacto || !telefono_contacto || !ciudad || !comuna || !fecha_publicacion){
+            throw {
+                code: 400, message: "faltan campos requeridos"
+            }
+        }
+
+        const publicacion = await agregar_publicacion ( usuario_id, titulo, contenido, imagen, tipo_servicio, email_contacto, telefono_contacto, ciudad, comuna, fecha_publicacion );
+
+        if(!publicacion){
+            throw{ code: 404, message: "publicacion rechazada" }
+        }
+        return res.status(201).json({ ok: true, message: "publicacion existosa" });
+    } catch (error) {
+        const { status, message } = handleError(error.code);
+        return res.status(status).json({ ok: false, message: message })
     }
     
 }
 export const portalController = {
-    register, login, services, publicaciones_user
+    register, login, services, publicaciones_user, nueva_publicacion
 }
