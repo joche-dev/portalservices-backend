@@ -1,5 +1,4 @@
-export const handleError = (code) => {
-    console.log(code);
+export const handleError = (code, message) => {
     switch (code) {
         case "22P02":
             return {
@@ -21,25 +20,20 @@ export const handleError = (code) => {
             status: 204,
             message: "No existen registros en la tabla",
         };
+        case 400:
+            return {
+            status: 400,
+            message,
+        };
         case 401:
             return {
             status: 401,
             message: "contraseña incorrecta",
         };
-        case 400:
-            return {
-            status: 400,
-            message: "Faltan datos en la petición",
-        };
         case 404:
             return {
             status: 404,
             message: "No existe ese registro en la tabla",
-        };
-        case 406:
-            return {
-            status: 406,
-            message: "Email registrado en la tabla",
         };
         default:
         return {
