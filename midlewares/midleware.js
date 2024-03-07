@@ -46,7 +46,7 @@ const verificarCredenciales = async (req, res, next) => {
         console.log("verifico el token");
         Jwt.verify(token, process.env.JWT_PASSWORD ); 
         const { email } = Jwt.decode(token);
-        req.body={email};
+        req.body.email={ email };
         next();
 
     } catch (error) {
