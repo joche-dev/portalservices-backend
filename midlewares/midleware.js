@@ -39,7 +39,7 @@ const verificarCredenciales = async (req, res, next) => {
     try {
         const Authorization = req.header("Authorization"); 
         const token = Authorization.split("Bearer ")[1];
-        console.log(token); 
+        console.log(token);
         if (!token){
             throw{code: 401, message:"token no proporcionado"}
         }
@@ -48,6 +48,7 @@ const verificarCredenciales = async (req, res, next) => {
         const { email } = Jwt.decode(token);
         req.body={email};
         next();
+
     } catch (error) {
         console.log(error);
         const { status, message } = handleError(error.code);
@@ -56,5 +57,6 @@ const verificarCredenciales = async (req, res, next) => {
     
 
 }
+
 
 export { reportarConsulta, verificarInput, verificarCredenciales };
