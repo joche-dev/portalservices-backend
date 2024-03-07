@@ -1,6 +1,7 @@
 import Jwt from 'jsonwebtoken';
 import bcrypt from "bcryptjs";
-import { registrarUsuario, verificarCredencial, obtenerServicios, prepararHATEOAS, obtenerPublicaciones, agregar_publicacion } from '../database/consultas.js';
+import { preparar_hateoas } from '../utilities/hateoas.js';
+import { registrarUsuario, obtenerServicios, obtenerPublicaciones, agregar_publicacion, todas_las_publicaciones,  verificarCredencial } from '../database/consultas.js';
 import { handleError } from '../handleError/handleError.js';
 
 const login = async (req, res) =>{
@@ -10,7 +11,7 @@ const login = async (req, res) =>{
 
 
         if (!email || !contraseña) {
-            throw { message: "email y la constraseña requeridos" };
+            throw { message: "email y la contraseña requeridos" };
         }
         const user = await verificarCredencial(email);
         const userContraseña= user.contraseña;
@@ -69,9 +70,12 @@ const services = async (req, res) => {
 
         const publicaciones = await obtenerServicios({page});
 
-        console.log("antes de entrar al hateoas", publicaciones);
-        const HATEOAS = await prepararHATEOAS(publicaciones, page )
-        res.json(HATEOAS); // respuesta del servidor
+        const data = await todas_las_publicaciones();
+        // obtener total de elementos
+        
+        const respuesta = preparar_hateoas (publicaciones, data, page);
+
+        res.status(200).json(respuesta); // respuesta del servidor
 
     } catch (error) {
         const { status, message } = handleError(error.code);
@@ -82,18 +86,22 @@ const services = async (req, res) => {
 const publicaciones_user = async (req, res) => {
     try {
         const {email}= req.body;
-        console.log(email);
+        const { page } = req.query;
+        const limits = 8;
         
-        const { rowCount, rows: [user] } = await verificarCredencial(email);
-        console.log("antes de la validacion de no se encontró registro");
-        if (!rowCount) throw { code: 404, message: "No se encontró ningún usuario con estas credenciales"}
-        console.log("despues de la validacion de no se encontró registro");
+        const user = await verificarCredencial(email);
+
+        if (!user) throw { code: 404, message: "No se encontró ningún usuario con estas credenciales"}
+
         const usuario_id= user.usuario_id;
         console.log("este es el usuario ID", usuario_id);
-        const publicaciones = await obtenerPublicaciones({ usuario_id });
+        const publicaciones = await obtenerPublicaciones({ usuario_id, limits, page });
         
         console.log(publicaciones);
-        res.status(200).json([publicaciones]);
+        res.status(200).json({
+                                ok: true,
+                                message: `Publicaciones realizadas por el usuario ${email}`,
+                                results:[publicaciones]});
 
     } catch (error) {
         const { status, message } = handleError(error.code);
