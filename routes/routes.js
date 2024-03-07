@@ -20,4 +20,5 @@ router.post("/user/servicios", reportarConsulta, verificarCredenciales, portalCo
 
 //GET /user/servicios (ruta privada)
 router.get("/user/servicios", reportarConsulta, verificarCredenciales, portalController.publicaciones_user);
+
 export default router;

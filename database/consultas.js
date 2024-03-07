@@ -20,6 +20,8 @@ const registrarUsuario = async (nombre, email, contraseña, ciudad, comuna, dire
     return { code: 201, message: "registro exitoso" }
 }
 
+//verificar comprobarRegistroByEmail y verificarEmail si cumplen la misma funcion
+
 const comprobarRegistroByEmail = async (email) => {
     const consulta = "SELECT * FROM usuarios WHERE email = $1" 
     const values = [email];
@@ -32,7 +34,7 @@ const verificarCredencial = async (email) => {
     const values = [email];
     const { rowCount, rows: [user]  } = await pool.query(consulta, values)
     console.log("user y rowCount en verificarCredenciales: ", { user, rowCount });
-    return ({rowCount, user});
+    return user;
 }
 
 const obtenerServicios = async ({ limits = 8, page = 1 }) => {
@@ -52,7 +54,7 @@ const obtenerServicios = async ({ limits = 8, page = 1 }) => {
     return publicaciones
 }
 
-const obtenerPublicaciones = async ({ id, limits = 20, page = 1 }) => {
+const obtenerPublicaciones = async ({ id, limits = 8, page = 1 }) => {
     console.log("entro al obtener publicaciones");
     const campo = "publicacion_id";
     const direccion = "DESC";
@@ -77,63 +79,21 @@ const agregar_publicacion= async (usuario_id, titulo, contenido, imagen, tipo_se
     return rowCount;
 }
 
-const prepararHATEOAS = async (publicaciones, page=1, limits=8) => {
-
-
-    // ya con pagina y limites
-    const results = publicaciones.map((p) => {
-        return {
-            usuarioId: p.usuarioId,
-            publicacionId: p.publicacionId,
-            titulo: p.titulo,
-            contenido: p.contenido,
-            imagen: p.imagen,
-            tipoServicio: p.tipoServicio,
-            emailContacto: p.emailContacto,
-            telefonoContacto: p.telefonoContacto,
-            ciudad: p.ciudad,
-            comuna: p.comuna,
-            fechaPublicacion: p.fechaPublicacion,
-            likes: p.likes
-        }
-    })
-
-    console.log("Valor de Results: ", results)
+const todas_las_publicaciones = async () => {
 
     // toda la tabla
-    const text = "SELECT * FROM publicaciones";
-    const { rows: data } = await pool.query(text);
+    const query = "SELECT * FROM publicaciones";
+    //SELECT * FROM publicaciones WHERE usuario_id = usuario_id
+    const { rows: data } = await pool.query(query);
 
-    // obtener total de elementos
-    const total = data.length
-    const total_pages = Math.ceil(total / limits);
-    console.log("Total registros Limits Total Paginas: ", total, limits, total_pages)
-
-    //HATEOAS COMO RESPUESTA
-    const HATEOAS = {
-        ok: true,
-        results, 
-        meta: {
-            total_publicaciones: total,
-            limit: parseInt(limits),
-            page: parseInt(page),
-            total_pages: total_pages,
-            next:
-                total_pages <= page
-                    ? null
-                    : `http://${URL_BASE}/servicios?&page=${parseInt(page) + 1
-                    }`,
-            previous:
-                page <= 1
-                    ? null
-                    : `http://${URL_BASE}/servicios?&page=${parseInt(page) - 1
-                    }`,
-        }
-    }
-
-    console.log("Valor de HATEOAS: ", HATEOAS)
-
-    return HATEOAS
+    return data;
 }
 
-export { registrarUsuario, comprobarRegistroByEmail, verificarCredencial, obtenerServicios, prepararHATEOAS, obtenerPublicaciones, agregar_publicacion }
+const publicaciones_usuario = async (usuario_id) => {
+
+    const query = "SELECT * FROM publicaciones WHERE usuario_id = $1";
+    const {  rows: data  } = await pool.query(query, usuario_id);
+    return data;
+}
+
+export { registrarUsuario, comprobarRegistroByEmail, verificarCredencial, obtenerServicios, todas_las_publicaciones, obtenerPublicaciones, agregar_publicacion, publicaciones_usuario }
