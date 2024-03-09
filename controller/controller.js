@@ -1,158 +1,127 @@
 import Jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { preparar_hateoas } from '../utilities/hateoas.js';
+import { createHateoas } from '../utilities/hateoas.js';
+import { portalModel } from '../database/consultas.js';
 import {
-  registrarUsuario,
-  obtenerServicios,
-  obtenerPublicaciones,
   agregar_publicacion,
-  todas_las_publicaciones,
-  verificarCredencial,
 } from '../database/consultas.js';
 import { handleError } from '../handleError/handleError.js';
 
 const login = async (req, res) => {
   try {
     const { email, contraseña } = req.body;
-    console.log('contraseña original:', contraseña, typeof contraseña);
-
     if (!email || !contraseña) {
-      throw { code: 400, message: 'email y la contraseña requeridos' };
+      throw { code: 400, message: 'El email y la contraseña son requeridos.' };
     }
 
-    const user = await verificarCredencial(email);
-
+    const user = await portalModel.getUser(email);
+    console.log(user);
     if (!user) {
       throw { code: 400, message: `Este email:${email} no esta registrado.` };
     }
 
-    //console.log("userContraseña devuelto de verfificar credenciales: ", userContraseña )
-    console.log('contraseña recibido del body: ', contraseña);
+    const verifyPassword = await bcrypt.compare(contraseña, user.contraseña);
 
-    // verifico comparando los passwords
-    const validateContraseña = await bcrypt.compare(
-      contraseña,
-      user.contraseña
-    );
-
-    console.log('validatePassword: ', validateContraseña);
-
-    // validacion contraseña
-    if (validateContraseña == false) {
-      throw { code: 401, message: 'Contraseña incorrecta del usuario' };
+    if (!verifyPassword) {
+      throw { code: 400, message: 'Contraseña incorrecta.' };
     }
 
     const token = Jwt.sign({ email }, process.env.JWT_PASSWORD);
-    console.log('Token generado en Login: ', token);
+
     res.status(200).json({
       token: token,
       ok: true,
-      message: 'login exitoso',
+      message: 'Login exitoso.',
       usuario: user,
     });
   } catch (error) {
-    console.log(error);
     const { status, message } = handleError(error.code, error.message);
-    return res.status(status).json({ ok: false, message: message });
+    res.status(status).json({ ok: false, message });
   }
 };
 
 const register = async (req, res) => {
   try {
-    const {
-      nombre,
-      email,
-      contraseña,
-      ciudad,
-      comuna,
-      direccion = '',
-      rol = 'user',
-    } = req.body;
-    console.log('password original: ', contraseña);
+    const { nombre, email, contraseña, ciudad, comuna } = req.body;
 
     const contraseñaEncriptada = await bcrypt.hash(contraseña, 10);
-    console.log('password encriptada: ', contraseñaEncriptada);
-    const result = await registrarUsuario(
+
+    const result = await portalModel.newUser(
       nombre,
       email,
       contraseñaEncriptada,
       ciudad,
-      comuna,
-      direccion,
-      rol
+      comuna
     );
 
     if (!result) {
-      throw { code: 404, message: 'registro fallido' };
+      throw { code: 400, message: 'Registro del usuario fallido.' };
     }
 
-    res.status(201).json({ ok: true, message: 'Usuario registrado con exito' });
+    console.log('Nuevo usuario registrado: ', result);
+
+    res
+      .status(201)
+      .json({ ok: true, message: 'Registro del usuario exitoso.' });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
-    return res.status(status).json({ ok: false, message: message });
+    return res.status(status).json({ ok: false, message });
   }
 };
 
-const services = async (req, res) => {
+const getServices = async (req, res) => {
   try {
     const { page } = req.query;
-    const isPageValid = /^[1-9]\d*$/.test(page);
-
-    if (!isPageValid) {
-      return res
-        .status(400)
-        .json({ message: 'Invalid page number, number > 0' });
+    if (!page) {
+      throw { code: 400, message: 'El numero de pagina es requerido.' };
     }
 
-    const publicaciones = await obtenerServicios({ page });
+    const isPageValid = /^[1-9]\d*$/.test(page);
+    if (!isPageValid) {
+      throw { code: 400, message: 'El numero de pagina debe ser igual o mayor a 1.' };
+    }
 
-    const data = await todas_las_publicaciones();
-    // obtener total de elementos
+    const { publicaciones, totalPublicaciones } = await portalModel.getServices({ page });
+    const resultHateoas = createHateoas(publicaciones, totalPublicaciones, page);
 
-    const respuesta = preparar_hateoas(publicaciones, data, page);
-
-    res.status(200).json(respuesta); // respuesta del servidor
+    res.status(200).json(resultHateoas);
   } catch (error) {
-    const { status, message } = handleError(error.code);
-    return res.status(status).json({ ok: false, message: message });
+    const { status, message } = handleError(error.code, error.message);
+    res.status(status).json({ ok: false, message });
   }
 };
 
-const publicaciones_user = async (req, res) => {
+const getServiceId = async (req, res) => {};
+
+const getServicesByUser = async (req, res) => {
   try {
-    const { email } = req.body;
+    const { usuarioId } = req.body;
+    if (!usuarioId) {
+      throw { code: 400, message: 'El Id del usuario es requerido.' };
+    }
+
     const { page } = req.query;
-    const limits = 8;
+    if (!page) {
+        throw { code: 400, message: 'El numero de pagina es requerido.' };
+    }
+    
+    const isPageValid = /^[1-9]\d*$/.test(page);
+    if (!isPageValid) {
+        throw { code: 400, message: 'El numero de pagina debe ser igual o mayor a 1.' };
+    }
+    
+    const userId = usuarioId;
+    const { publicaciones, totalPublicaciones } = await portalModel.getServicesByUser({ userId, page });
+    const resultHateoas = createHateoas(publicaciones, totalPublicaciones, page);
 
-    const user = await verificarCredencial(email);
-
-    if (!user)
-      throw {
-        code: 404,
-        message: 'No se encontró ningún usuario con estas credenciales',
-      };
-
-    const usuario_id = user.usuario_id;
-    console.log('este es el usuario ID', usuario_id);
-    const publicaciones = await obtenerPublicaciones({
-      usuario_id,
-      limits,
-      page,
-    });
-
-    console.log(publicaciones);
-    res.status(200).json({
-      ok: true,
-      message: `Publicaciones realizadas por el usuario ${email}`,
-      results: [publicaciones],
-    });
+    res.status(200).json(resultHateoas);
   } catch (error) {
-    const { status, message } = handleError(error.code);
-    return res.status(status).json({ ok: false, message: message });
+    const { status, message } = handleError(error.code, error.message);
+    return res.status(status).json({ ok: false, message});
   }
 };
 
-const nueva_publicacion = async (req, res) => {
+const newService = async (req, res) => {
   try {
     const {
       usuario_id,
@@ -207,10 +176,30 @@ const nueva_publicacion = async (req, res) => {
     return res.status(status).json({ ok: false, message: message });
   }
 };
+
+const updateService = async (req, res) => {};
+
+const deleteService = async (req, res) => {};
+
+const getFavoritesByUser = async (req, res) => {};
+
+const deleteFavorites = async (req, res) => {};
+
+const getProfileUser = async (req, res) => {};
+
+const updateProfileUser = async (req, res) => {};
+
 export const portalController = {
   register,
   login,
-  services,
-  publicaciones_user,
-  nueva_publicacion,
+  getServices,
+  getServiceId,
+  getServicesByUser,
+  newService,
+  updateService,
+  deleteService,
+  getFavoritesByUser,
+  deleteFavorites,
+  getProfileUser,
+  updateProfileUser,
 };

@@ -1,24 +1,39 @@
 import { Router } from "express";
 import { portalController } from "../controller/controller.js";
-import { verificarCredenciales, verificarInput } from "../midlewares/midleware.js";
+import { verifyRegisterUser, verifyCredentials } from "../midlewares/midleware.js";
+
 
 const router = Router();
 
 
-// POST /usuarios
-router.post("/login",  portalController.login);
+// RUTAS PUBLICAS
+router.post("/login", portalController.login);
 
-// POST /register
-router.post("/register",  verificarInput, portalController.register);
+router.post("/register",  verifyRegisterUser, portalController.register);
 
-// GET /servicios
-router.get("/servicios", portalController.services);
+router.get("/servicios", portalController.getServices);
 
-//POST /user/servicios (ruta privada)
-router.post("/user/servicios", verificarCredenciales, portalController.nueva_publicacion);
+router.get("/servicios/:id", portalController.getServiceId);
 
-//GET /user/servicios (ruta privada)
-router.get("/user/servicios", verificarCredenciales, portalController.publicaciones_user);
+
+// RUTAS PRIVADAS
+router.get("/user/servicios", verifyCredentials, portalController.getServicesByUser);
+
+router.post("/user/servicios", verifyCredentials, portalController.newService);
+
+router.put("/user/servicios", verifyCredentials, portalController.updateService);
+
+router.delete("/user/servicios/:id", verifyCredentials, portalController.updateService);
+
+router.get("/user/favoritos", verifyCredentials, portalController.getFavoritesByUser);
+
+router.delete("/user/favoritos/:id", verifyCredentials, portalController.deleteFavorites);
+
+router.get("/perfil", verifyCredentials, portalController.getProfileUser)
+
+router.put("/perfil", verifyCredentials, portalController.updateProfileUser)
+
+
 
 router.all('*', (req, res) => {
     res.status(404).json({ ok: false, message: "404 Pagina no encontrada." });

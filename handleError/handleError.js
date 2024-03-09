@@ -28,7 +28,7 @@ export const handleError = (code, message) => {
         case 401:
             return {
             status: 401,
-            message: "contraseña incorrecta",
+            message,
         };
         case 404:
             return {

@@ -1,50 +1,40 @@
-export const preparar_hateoas = (publicaciones, data, page = 1, limits = 8) => {
+import { config } from 'dotenv';
+config();
+const URL_BASE = process.env.URL_BASE
+
+export const createHateoas = (publicaciones, totalPublicaciones, page = 1, limits = 8) => {
   const results = publicaciones.map((p) => {
     return {
-      usuarioId: p.usuarioId,
-      publicacionId: p.publicacionId,
+      usuarioId: p.usuario_id,
+      publicacionId: p.publicacion_id,
       titulo: p.titulo,
       contenido: p.contenido,
       imagen: p.imagen,
-      tipoServicio: p.tipoServicio,
-      emailContacto: p.emailContacto,
-      telefonoContacto: p.telefonoContacto,
+      tipoServicio: p.tipo_servicio,
+      emailContacto: p.email_contacto,
+      telefonoContacto: p.telefono_contacto,
       ciudad: p.ciudad,
       comuna: p.comuna,
-      fechaPublicacion: p.fechaPublicacion,
+      fechaPublicacion: p.fecha_publicacion,
       likes: p.likes,
     };
   });
 
-  const total = data.length;
-  const total_pages = Math.ceil(total / limits);
-  console.log(
-    "Total registros Limits Total Paginas: ",
-    total,
-    limits,
-    total_pages
-  );
+  const total_pages = Math.ceil(totalPublicaciones / limits);
+  const nextPage = total_pages <= page ? null : `${URL_BASE}/servicios?&page=${parseInt(page) + 1}`;
+  const previousPage = page <= 1 ? null : `${URL_BASE}/servicios?&page=${parseInt(page) - 1}`;
 
-  console.log("antes de entrar al hateoas", publicaciones);
-
-  //HATEOAS COMO RESPUESTA
   const HATEOAS = {
     ok: true,
     results,
     meta: {
-      total_publicaciones: total,
-      limit: parseInt(limits),
+      total_publicaciones: parseInt(totalPublicaciones),
+      total_pages,
       page: parseInt(page),
-      total_pages: total_pages,
-      next:
-        total_pages <= page
-          ? null
-          : `http://${URL_BASE}/servicios?&page=${parseInt(page) + 1}`,
-      previous:
-        page <= 1
-          ? null
-          : `http://${URL_BASE}/servicios?&page=${parseInt(page) - 1}`,
+      next: nextPage,
+      previous: previousPage,
     },
   };
+  
   return HATEOAS;
 };
