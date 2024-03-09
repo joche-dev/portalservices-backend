@@ -23,15 +23,17 @@ router.post("/user/servicios", verifyCredentials, portalController.newService);
 
 router.put("/user/servicios", verifyCredentials, portalController.updateService);
 
-router.delete("/user/servicios/:id", verifyCredentials, portalController.updateService);
+router.delete("/user/servicios", verifyCredentials, portalController.removeService);
 
 router.get("/user/favoritos", verifyCredentials, portalController.getFavoritesByUser);
 
-router.delete("/user/favoritos/:id", verifyCredentials, portalController.deleteFavorites);
+router.post("/user/favoritos", verifyCredentials, portalController.newFavorites);
 
-router.get("/perfil", verifyCredentials, portalController.getProfileUser)
+router.delete("/user/favoritos", verifyCredentials, portalController.removeFavorites);
 
-router.put("/perfil", verifyCredentials, portalController.updateProfileUser)
+router.get("/perfil", verifyCredentials, portalController.getProfileUser);
+
+router.put("/perfil", verifyCredentials, portalController.updateProfileUser);
 
 
 

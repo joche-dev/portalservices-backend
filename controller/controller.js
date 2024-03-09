@@ -2,9 +2,6 @@ import Jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { createHateoas } from '../utilities/hateoas.js';
 import { portalModel } from '../database/consultas.js';
-import {
-  agregar_publicacion,
-} from '../database/consultas.js';
 import { handleError } from '../handleError/handleError.js';
 
 const login = async (req, res) => {
@@ -91,7 +88,22 @@ const getServices = async (req, res) => {
   }
 };
 
-const getServiceId = async (req, res) => {};
+const getServiceId = async (req, res) => {
+  try {
+    const postId = req.params;
+    if(!postId){
+      throw { code: 400, message:'Id del servicio no proporcionado.'}
+    }
+    const publicacion = await portalModel.getServiceId(postId);
+    if(!publicacion){
+      throw { code: 400, message: 'Servicio no encontrado.'}
+    }
+    res.status(200).json({ ok:true, message: 'Publicacion encontrada.', servicio: publicacion});
+  } catch (error) {
+    const { status, message } = handleError(error.code, error.message);
+    res.status(status).json({ ok: false, message });
+  }
+};
 
 const getServicesByUser = async (req, res) => {
   try {
@@ -154,7 +166,7 @@ const newService = async (req, res) => {
       };
     }
 
-    const publicacion = await agregar_publicacion(
+    const publicacion = await portalModel.newService(
       usuario_id,
       titulo,
       contenido,
@@ -177,17 +189,82 @@ const newService = async (req, res) => {
   }
 };
 
-const updateService = async (req, res) => {};
+const updateService = async (req, res) => {
+  
+};
 
-const deleteService = async (req, res) => {};
+const removeService = async (req, res) => {
+  try {
+    const { postId } = req.body;
+    if(!postId){
+      throw { code: 400, message:'Id del servicio no proporcionado.'}
+    }
+    const result = await portalModel.removeService(postId);
+    if(!result){
+      throw { code: 400, message: 'Servicio no encontrado.'}
+    }
+    res.status(200).json({ ok: true, message:'Servicio eliminado con exito.'});
+  } catch (error) {
+    const { status, message } = handleError(error.code, error.message);
+    res.status(status).json({ ok: false, message });
+  }
+};
 
-const getFavoritesByUser = async (req, res) => {};
+const getFavoritesByUser = async (req, res) => {
+  try {
+    const { usuarioId } = req.body;
+    if (!usuarioId) {
+      throw { code: 400, message: 'El Id del usuario es requerido.' };
+    }
 
-const deleteFavorites = async (req, res) => {};
+    const { page } = req.query;
+    if (!page) {
+        throw { code: 400, message: 'El numero de pagina es requerido.' };
+    }
+    
+    const isPageValid = /^[1-9]\d*$/.test(page);
+    if (!isPageValid) {
+        throw { code: 400, message: 'El numero de pagina debe ser igual o mayor a 1.' };
+    }
+    
+    const { publicaciones, totalPublicaciones } = await portalModel.getFavoritesByUser({ usuarioId, page });
+    const resultHateoas = createHateoas(publicaciones, totalPublicaciones, page);
 
-const getProfileUser = async (req, res) => {};
+    res.status(200).json(resultHateoas);
+  } catch (error) {
+    const { status, message } = handleError(error.code, error.message);
+    return res.status(status).json({ ok: false, message});
+  }
+};
 
-const updateProfileUser = async (req, res) => {};
+const newFavorites = async (req, res) => {
+
+};
+
+const removeFavorites = async (req, res) => {
+  try {
+    const { favoritoId } = req.body;
+    if(!favoritoId){
+      throw { code: 400, message:'Id del Favorito no proporcionado.'}
+    }
+    const result = await portalModel.removeFavoritesByUser(favoritoId);
+    if(!result){
+      throw { code: 400, message: 'Favorito no encontrado.'}
+    }
+    res.status(200).json({ ok: true, message:'Favorito eliminado con exito.'});
+  } catch (error) {
+    const { status, message } = handleError(error.code, error.message);
+    res.status(status).json({ ok: false, message });
+  }
+};
+
+const getProfileUser = async (req, res) => {
+
+};
+
+const updateProfileUser = async (req, res) => {
+
+};
 
 export const portalController = {
   register,
@@ -197,9 +274,10 @@ export const portalController = {
   getServicesByUser,
   newService,
   updateService,
-  deleteService,
+  removeService,
   getFavoritesByUser,
-  deleteFavorites,
+  newFavorites,
+  removeFavorites,
   getProfileUser,
   updateProfileUser,
 };
