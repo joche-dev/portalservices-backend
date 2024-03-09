@@ -61,6 +61,12 @@ const getServices = async ({ limits = 8, page = 1 }) => {
   return { publicaciones, totalPublicaciones };
 };
 
+const getServiceId = async (postId) => {
+  const query = 'SELECT * FROM publicaciones WHERE publicacionId = %1';
+  const { rows: publicacion } = await pool.query(query, [postId]);
+  return publicacion;
+};
+
 const getServicesByUser = async ({ userId, limit = 8, page = 1 }) => {
   const order = 'DESC';
   page = Math.max(1, page);
@@ -77,7 +83,7 @@ const getServicesByUser = async ({ userId, limit = 8, page = 1 }) => {
   return { publicaciones, totalPublicaciones };
 };
 
-const agregar_publicacion = async (
+const newService = async (
   usuario_id,
   titulo,
   contenido,
@@ -110,15 +116,62 @@ const agregar_publicacion = async (
   return rowCount;
 };
 
+const updateService = async () => {
+
+};
+
+const removeService = async (postId) => {
+  const query = 'DELETE FROM publicaciones WHERE publicacion_id= $1';
+  const { rowCount } = await pool.query(query, [postId]);
+  return rowCount;
+};
+
+const getFavoritesByUser = async ({ usuarioId, page=1, limit=8 }) => {
+  const order = 'DESC';
+  page = Math.max(1, page);
+  const offset = (page - 1) * limit;
+
+  const query = ' SELECT * FROM favoritos AS f JOIN publicaciones AS p ON f.publicacion_id = p.publicacion_id WHERE f.usuario_id = %s ORDER BY p.publicacion_id %s LIMIT %s OFFSET %s'
+  
+  const publicacionesQuery = format(query, usuarioId, order, limit, offset);
+  const { rows: publicaciones } = await pool.query(publicacionesQuery);
+
+  const totalPublicacionesQuery = format('SELECT COUNT(*) FROM favoritos WHERE usuario_id = %s', usuarioId);
+  const { rows: totalRows } = await pool.query(totalPublicacionesQuery);
+  const totalPublicaciones = parseInt(totalRows[0].count);
+
+  return { publicaciones, totalPublicaciones };
+};
+
+const removeFavoritesByUser = async (favoritoId) => {
+  const query = 'DELETE FROM favoritos WHERE favorito_id= $1';
+  const { rowCount } = await pool.query(query, [favoritoId]);
+  return rowCount;
+};
+
+const getProfileUser = async () => {
+
+};
+
+const updateProfileUser = async () => {
+
+};
+
 
 export const portalModel = {
   getUser,
   checkEmailEnabled,
   newUser,
   getServices,
-  getServicesByUser
+  getServiceId,
+  getServicesByUser,
+  newService,
+  updateService,
+  removeService,
+  getFavoritesByUser,
+  removeFavoritesByUser,
+  getProfileUser,
+  updateProfileUser
 };
 
-export {
-  agregar_publicacion,
-};
+
