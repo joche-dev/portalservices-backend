@@ -2,7 +2,6 @@ import Jwt from 'jsonwebtoken';
 import { handleError } from '../handleError/handleError.js';
 import { portalModel } from '../database/consultas.js';
 
-
 export const requestLogger = async (req, res, next) => {
   const parametros = req.params;
   const querys = req.query;
@@ -24,16 +23,20 @@ export const requestLogger = async (req, res, next) => {
 export const verifyRegisterUser = async (req, res, next) => {
   try {
     const { nombre, email, contraseña, ciudad, comuna } = req.body;
-
     if (!nombre || !email || !contraseña || !ciudad || !comuna) {
       throw { code: 400, message: 'Faltan campos requeridos.' };
     }
 
+    const isEmailValid = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/.test(email);
+    if (!isEmailValid) {
+      throw { code: 400, message: 'El email proporcionado no es valido.' };
+    }
+
     const result = await portalModel.checkEmailEnabled(email);
     if (result) {
-      throw { code: 400, message: `El email ${email} ya esta registrado.` };
+      throw { code: 400, message: `El email ${email} ya está registrado.` };
     }
-    
+
     next();
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);

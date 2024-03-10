@@ -12,7 +12,6 @@ const login = async (req, res) => {
     }
 
     const user = await portalModel.getUser(email);
-    console.log(user);
     if (!user) {
       throw { code: 400, message: `Este email:${email} no esta registrado.` };
     }
@@ -55,8 +54,6 @@ const register = async (req, res) => {
       throw { code: 400, message: 'Registro del usuario fallido.' };
     }
 
-    console.log('Nuevo usuario registrado: ', result);
-
     res
       .status(201)
       .json({ ok: true, message: 'Registro del usuario exitoso.' });
@@ -70,16 +67,26 @@ const getServices = async (req, res) => {
   try {
     const { page } = req.query;
     if (!page) {
-      throw { code: 400, message: 'El numero de pagina es requerido.' };
+      throw { code: 400, message: 'El número de página es requerido.' };
     }
 
     const isPageValid = /^[1-9]\d*$/.test(page);
     if (!isPageValid) {
-      throw { code: 400, message: 'El numero de pagina debe ser igual o mayor a 1.' };
+      throw {
+        code: 400,
+        message: 'El número de página debe ser igual o mayor a 1.',
+      };
     }
 
-    const { publicaciones, totalPublicaciones } = await portalModel.getServices({ page });
-    const resultHateoas = createHateoas(publicaciones, totalPublicaciones, page);
+    const { publicaciones, totalPublicaciones } = await portalModel.getServices(
+      { page }
+    );
+
+    const resultHateoas = createHateoas(
+      publicaciones,
+      totalPublicaciones,
+      page
+    );
 
     res.status(200).json(resultHateoas);
   } catch (error) {
@@ -90,15 +97,20 @@ const getServices = async (req, res) => {
 
 const getServiceId = async (req, res) => {
   try {
-    const postId = req.params;
-    if(!postId){
-      throw { code: 400, message:'Id del servicio no proporcionado.'}
+    const postId = parseInt(req.params.id);
+    if (!postId) {
+      throw { code: 400, message: 'Id de la puclicación no proporcionado.' };
     }
+
     const publicacion = await portalModel.getServiceId(postId);
-    if(!publicacion){
-      throw { code: 400, message: 'Servicio no encontrado.'}
+    if (!publicacion) {
+      throw { code: 400, message: 'Puclicación no encontrado.' };
     }
-    res.status(200).json({ ok:true, message: 'Publicacion encontrada.', servicio: publicacion});
+    res.status(200).json({
+      ok: true,
+      message: 'puclicación encontrada.',
+      servicio: publicacion,
+    });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     res.status(status).json({ ok: false, message });
@@ -114,22 +126,29 @@ const getServicesByUser = async (req, res) => {
 
     const { page } = req.query;
     if (!page) {
-        throw { code: 400, message: 'El numero de pagina es requerido.' };
+      throw { code: 400, message: 'El número de página es requerido.' };
     }
-    
+
     const isPageValid = /^[1-9]\d*$/.test(page);
     if (!isPageValid) {
-        throw { code: 400, message: 'El numero de pagina debe ser igual o mayor a 1.' };
+      throw {
+        code: 400,
+        message: 'El número de página debe ser igual o mayor a 1.',
+      };
     }
-    
-    const userId = usuarioId;
-    const { publicaciones, totalPublicaciones } = await portalModel.getServicesByUser({ userId, page });
-    const resultHateoas = createHateoas(publicaciones, totalPublicaciones, page);
+
+    const { publicaciones, totalPublicaciones } =
+      await portalModel.getServicesByUser({ usuarioId, page });
+    const resultHateoas = createHateoas(
+      publicaciones,
+      totalPublicaciones,
+      page
+    );
 
     res.status(200).json(resultHateoas);
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
-    return res.status(status).json({ ok: false, message});
+    return res.status(status).json({ ok: false, message });
   }
 };
 
@@ -145,7 +164,6 @@ const newService = async (req, res) => {
       telefono_contacto,
       ciudad,
       comuna,
-      fecha_publicacion,
     } = req.body;
 
     if (
@@ -157,12 +175,11 @@ const newService = async (req, res) => {
       !email_contacto ||
       !telefono_contacto ||
       !ciudad ||
-      !comuna ||
-      !fecha_publicacion
+      !comuna
     ) {
       throw {
         code: 400,
-        message: 'faltan campos requeridos',
+        message: 'Faltan campos requeridos.',
       };
     }
 
@@ -175,35 +192,92 @@ const newService = async (req, res) => {
       email_contacto,
       telefono_contacto,
       ciudad,
-      comuna,
-      fecha_publicacion
+      comuna
     );
 
     if (!publicacion) {
-      throw { code: 404, message: 'publicacion rechazada' };
+      throw { code: 400, message: 'Registro de la publicación fallida.' };
     }
-    return res.status(201).json({ ok: true, message: 'publicacion existosa' });
+    return res
+      .status(201)
+      .json({ ok: true, message: 'Registro de la publicación exitosa.' });
   } catch (error) {
-    const { status, message } = handleError(error.code);
-    return res.status(status).json({ ok: false, message: message });
+    const { status, message } = handleError(error.code, error.message);
+    return res.status(status).json({ ok: false, message });
   }
 };
 
 const updateService = async (req, res) => {
-  
+  try {
+    const {
+      publicacion_id,
+      titulo,
+      contenido,
+      imagen,
+      tipo_servicio,
+      email_contacto,
+      telefono_contacto,
+      ciudad,
+      comuna,
+      likes
+    } = req.body;
+
+    if (
+      !publicacion_id ||
+      !titulo ||
+      !contenido ||
+      !imagen ||
+      !tipo_servicio ||
+      !email_contacto ||
+      !telefono_contacto ||
+      !ciudad ||
+      !comuna ||
+      !likes
+    ) {
+      throw {
+        code: 400,
+        message: 'Faltan campos requeridos.',
+      };
+    }
+
+    const publicacion = await portalModel.updateService(
+      publicacion_id,
+      titulo,
+      contenido,
+      imagen,
+      tipo_servicio,
+      email_contacto,
+      telefono_contacto,
+      ciudad,
+      comuna,
+      likes
+    );
+
+    if (!publicacion) {
+      throw { code: 400, message: 'Actualización de la publicación fallida.' };
+    }
+    return res
+      .status(201)
+      .json({ ok: true, message: 'Actualización de la publicación exitosa.' });
+  } catch (error) {
+    const { status, message } = handleError(error.code, error.message);
+    return res.status(status).json({ ok: false, message });
+  }
 };
 
 const removeService = async (req, res) => {
   try {
     const { postId } = req.body;
-    if(!postId){
-      throw { code: 400, message:'Id del servicio no proporcionado.'}
+    if (!postId) {
+      throw { code: 400, message: 'Id de la publicación no proporcionado.' };
     }
     const result = await portalModel.removeService(postId);
-    if(!result){
-      throw { code: 400, message: 'Servicio no encontrado.'}
+    if (!result) {
+      throw { code: 400, message: 'Publicación no encontrada.' };
     }
-    res.status(200).json({ ok: true, message:'Servicio eliminado con exito.'});
+    res
+      .status(200)
+      .json({ ok: true, message: 'Publicación eliminada con éxito.' });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     res.status(status).json({ ok: false, message });
@@ -219,52 +293,79 @@ const getFavoritesByUser = async (req, res) => {
 
     const { page } = req.query;
     if (!page) {
-        throw { code: 400, message: 'El numero de pagina es requerido.' };
+      throw { code: 400, message: 'El número de página es requerido.' };
     }
-    
+
     const isPageValid = /^[1-9]\d*$/.test(page);
     if (!isPageValid) {
-        throw { code: 400, message: 'El numero de pagina debe ser igual o mayor a 1.' };
+      throw {
+        code: 400,
+        message: 'El número de página debe ser igual o mayor a 1.',
+      };
     }
-    
-    const { publicaciones, totalPublicaciones } = await portalModel.getFavoritesByUser({ usuarioId, page });
-    const resultHateoas = createHateoas(publicaciones, totalPublicaciones, page);
+
+    const { publicaciones, totalPublicaciones } =
+      await portalModel.getFavoritesByUser({ usuarioId, page });
+    const resultHateoas = createHateoas(
+      publicaciones,
+      totalPublicaciones,
+      page
+    );
 
     res.status(200).json(resultHateoas);
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
-    return res.status(status).json({ ok: false, message});
+    return res.status(status).json({ ok: false, message });
   }
 };
 
 const newFavorites = async (req, res) => {
+  try {
+    const { usuario_id, publicacion_id } = req.body;
 
+    if (!usuario_id || !publicacion_id) {
+      throw {
+        code: 400,
+        message: 'Faltan campos requeridos.',
+      };
+    }
+
+    const result = await portalModel.newFavorites(usuario_id, publicacion_id);
+
+    if (!result) {
+      throw { code: 400, message: 'Registro de favorito fallida.' };
+    }
+    return res
+      .status(201)
+      .json({ ok: true, message: 'Registro de favorito exitoso.' });
+  } catch (error) {
+    const { status, message } = handleError(error.code, error.message);
+    return res.status(status).json({ ok: false, message });
+  }
 };
 
 const removeFavorites = async (req, res) => {
   try {
     const { favoritoId } = req.body;
-    if(!favoritoId){
-      throw { code: 400, message:'Id del Favorito no proporcionado.'}
+    if (!favoritoId) {
+      throw { code: 400, message: 'Id del Favorito no proporcionado.' };
     }
     const result = await portalModel.removeFavoritesByUser(favoritoId);
-    if(!result){
-      throw { code: 400, message: 'Favorito no encontrado.'}
+    if (!result) {
+      throw { code: 400, message: 'Favorito no encontrado.' };
     }
-    res.status(200).json({ ok: true, message:'Favorito eliminado con exito.'});
+    res
+      .status(200)
+      .json({ ok: true, message: 'Favorito eliminado con exito.' });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     res.status(status).json({ ok: false, message });
   }
 };
 
-const getProfileUser = async (req, res) => {
+const getProfileUser = async (req, res) => {};
 
-};
-
-const updateProfileUser = async (req, res) => {
-
-};
+const updateProfileUser = async (req, res) => {};
 
 export const portalController = {
   register,
