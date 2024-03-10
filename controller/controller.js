@@ -259,11 +259,32 @@ const removeFavorites = async (req, res) => {
 };
 
 const getProfileUser = async (req, res) => {
+  try {
+    const { usuario_id } = req.body;
+    if (!usuario_id) {
+      throw { code: 400, message: 'El Id del usuario es requerido.' };
+    }
+    const perfil = await portalModel.getProfileUser(usuario_id);
 
+    if(!perfil){
+      throw { code: 400, message: 'Usuario no registrado.'}
+    }
+
+    res.status(200).json({ ok: true, message: 'Usuario encontrado.', perfil: perfil })
+  } catch (error) {
+    const { status, message } = handleError(error.code, error.message);
+    res.status(status).json({ ok: false, message });
+  }
 };
 
 const updateProfileUser = async (req, res) => {
-
+  try {
+    const { nombre, email, contraseña, ciudad, comuna, direccion } = req.body;
+    
+  } catch (error) {
+    const { status, message } = handleError(error.code, error.message);
+    res.status(status).json({ ok: false, message });
+  }
 };
 
 export const portalController = {
