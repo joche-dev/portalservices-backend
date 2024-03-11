@@ -61,10 +61,10 @@ const getServices = async ({ limits = 8, page = 1 }) => {
   return { publicaciones, totalPublicaciones };
 };
 
-const getServiceId = async (postId) => {
+const getServiceId = async (publicacion_id) => {
   const query = format(
     'SELECT * FROM publicaciones WHERE publicacion_id = %s',
-    postId
+    publicacion_id
   );
   const {
     rows: [publicacion],
@@ -73,19 +73,19 @@ const getServiceId = async (postId) => {
   return publicacion;
 };
 
-const getServicesByUser = async ({ usuarioId, page = 1, limit = 8 }) => {
+const getServicesByUser = async ({ usuario_id, page = 1, limit = 8 }) => {
   const order = 'DESC';
   page = Math.max(1, page);
   const offset = (page - 1) * limit;
   const query =
     'SELECT * FROM publicaciones WHERE usuario_id = %s ORDER BY publicacion_id %s LIMIT %s OFFSET %s';
 
-  const publicacionesQuery = format(query, usuarioId, order, limit, offset);
+  const publicacionesQuery = format(query, usuario_id, order, limit, offset);
   const { rows: publicaciones } = await pool.query(publicacionesQuery);
 
   const totalPublicacionesQuery = format(
     'SELECT COUNT(*) FROM publicaciones WHERE usuario_id = %s',
-    usuarioId
+    usuario_id
   );
   const { rows: totalRows } = await pool.query(totalPublicacionesQuery);
   const totalPublicaciones = parseInt(totalRows[0].count);
@@ -161,13 +161,14 @@ const updateService = async (
   return rowCount;
 };
 
-const removeService = async (postId) => {
+const removeService = async (publicacion_id) => {
   const query = 'DELETE FROM publicaciones WHERE publicacion_id= $1';
-  const { rowCount } = await pool.query(query, [postId]);
+  const { rowCount } = await pool.query(query, [publicacion_id]);
+
   return rowCount;
 };
 
-const getFavoritesByUser = async ({ usuarioId, page = 1, limit = 8 }) => {
+const getFavoritesByUser = async ({ usuario_id, page = 1, limit = 8 }) => {
   const order = 'DESC';
   page = Math.max(1, page);
   const offset = (page - 1) * limit;
@@ -175,12 +176,12 @@ const getFavoritesByUser = async ({ usuarioId, page = 1, limit = 8 }) => {
   const query =
     ' SELECT * FROM favoritos AS f JOIN publicaciones AS p ON f.publicacion_id = p.publicacion_id WHERE f.usuario_id = %s ORDER BY p.publicacion_id %s LIMIT %s OFFSET %s';
 
-  const publicacionesQuery = format(query, usuarioId, order, limit, offset);
+  const publicacionesQuery = format(query, usuario_id, order, limit, offset);
   const { rows: publicaciones } = await pool.query(publicacionesQuery);
 
   const totalPublicacionesQuery = format(
     'SELECT COUNT(*) FROM favoritos WHERE usuario_id = %s',
-    usuarioId
+    usuario_id
   );
   const { rows: totalRows } = await pool.query(totalPublicacionesQuery);
   const totalPublicaciones = parseInt(totalRows[0].count);
@@ -196,12 +197,12 @@ const newFavorites = async (usuario_id, publicacion_id) => {
   return rowCount;
 };
 
-const removeFavoritesByUser = async (favoritoId) => {
+const removeFavoritesByUser = async (favorito_id) => {
   const query = 'DELETE FROM favoritos WHERE favorito_id= $1';
-  const { rowCount } = await pool.query(query, [favoritoId]);
+  const { rowCount } = await pool.query(query, [favorito_id]);
+
   return rowCount;
 };
-
 
 const getProfileUser = async (usuario_id) => {
   const query = 'SELECT * FROM usuarios WHERE usuario_id = $1';
@@ -209,8 +210,12 @@ const getProfileUser = async (usuario_id) => {
   return perfil;
 };
 
-const updateProfileUser = async () => {
+const updateProfileUser = async ( usuario_id, nombre, email, contraseña, ciudad, comuna, direccion ) => {
+  const values = [ nombre, email, contraseña, ciudad, comuna, direccion, usuario_id ];
+  const consulta = 'UPDATE usuarios SET nombre = $1, email = $2, contraseña = $3, ciudad = $4, comuna = $5, direccion = $6 WHERE usuario_id = $7';
+  const { rowCount } = await pool.query(consulta, values);
 
+  return rowCount;
 };
 
 

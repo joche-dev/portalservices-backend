@@ -30,11 +30,6 @@ export const handleError = (code, message) => {
             status: 401,
             message,
         };
-        case 404:
-            return {
-            status: 404,
-            message: "No existe ese registro en la tabla",
-        };
         default:
         return {
             status: 500,
