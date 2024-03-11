@@ -202,9 +202,17 @@ const removeFavoritesByUser = async (favoritoId) => {
   return rowCount;
 };
 
-const getProfileUser = async () => {};
 
-const updateProfileUser = async () => {};
+const getProfileUser = async (usuario_id) => {
+  const query = 'SELECT * FROM usuarios WHERE usuario_id = $1';
+  const { rows: perfil } = await pool.query(query, [usuario_id]);
+  return perfil;
+};
+
+const updateProfileUser = async () => {
+
+};
+
 
 export const portalModel = {
   getUser,
