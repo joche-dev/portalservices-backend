@@ -32,11 +32,6 @@ export const verifyRegisterUser = async (req, res, next) => {
       throw { code: 400, message: 'El email proporcionado no es valido.' };
     }
 
-    const result = await portalModel.checkEmailEnabled(email);
-    if (result) {
-      throw { code: 400, message: `El email ${email} ya está registrado.` };
-    }
-
     next();
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
@@ -62,6 +57,8 @@ export const verifyCredentials = async (req, res, next) => {
     }
 
     req.body.email = payload.email;
+    const { usuario_id } = await portalModel.getUser(payload.email);
+    req.body.usuario_id = usuario_id;
 
     next();
   } catch (error) {

@@ -33,7 +33,7 @@ router.delete("/user/favoritos", verifyCredentials, portalController.removeFavor
 
 router.get("/perfil", verifyCredentials, portalController.getProfileUser);
 
-router.put("/perfil", verifyCredentials, portalController.updateProfileUser);
+router.put("/perfil", verifyCredentials, verifyRegisterUser, portalController.updateProfileUser);
 
 
 

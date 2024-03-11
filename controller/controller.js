@@ -17,19 +17,13 @@ const login = async (req, res) => {
     }
 
     const verifyPassword = await bcrypt.compare(contraseña, user.contraseña);
-
     if (!verifyPassword) {
       throw { code: 400, message: 'Contraseña incorrecta.' };
     }
 
     const token = Jwt.sign({ email }, process.env.JWT_PASSWORD);
 
-    res.status(200).json({
-      token: token,
-      ok: true,
-      message: 'Login exitoso.',
-      usuario: user,
-    });
+    res.status(200).json({ token: token, ok: true, message: 'Login exitoso.', usuario: user });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     res.status(status).json({ ok: false, message });
@@ -39,24 +33,19 @@ const login = async (req, res) => {
 const register = async (req, res) => {
   try {
     const { nombre, email, contraseña, ciudad, comuna } = req.body;
-
     const contraseñaEncriptada = await bcrypt.hash(contraseña, 10);
 
-    const result = await portalModel.newUser(
-      nombre,
-      email,
-      contraseñaEncriptada,
-      ciudad,
-      comuna
-    );
+    const checkEmail = await portalModel.checkEmailEnabled(email);
+    if (checkEmail) {
+      throw { code: 400, message: `El email ${email} ya está registrado.` };
+    }
 
+    const result = await portalModel.newUser( nombre, email, contraseñaEncriptada, ciudad, comuna );
     if (!result) {
       throw { code: 400, message: 'Registro del usuario fallido.' };
     }
 
-    res
-      .status(201)
-      .json({ ok: true, message: 'Registro del usuario exitoso.' });
+    res.status(201).json({ ok: true, message: 'Registro del usuario exitoso.' });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     return res.status(status).json({ ok: false, message });
@@ -72,21 +61,15 @@ const getServices = async (req, res) => {
 
     const isPageValid = /^[1-9]\d*$/.test(page);
     if (!isPageValid) {
-      throw {
-        code: 400,
-        message: 'El número de página debe ser igual o mayor a 1.',
-      };
+      throw { code: 400, message: 'El número de página debe ser igual o mayor a 1.' };
     }
 
-    const { publicaciones, totalPublicaciones } = await portalModel.getServices(
-      { page }
-    );
+    const { publicaciones, totalPublicaciones } = await portalModel.getServices({ page });
+    if (!publicaciones || !totalPublicaciones) {
+      throw { code: 400, message: 'No hay publicaciones por mostrar.' };
+    }
 
-    const resultHateoas = createHateoas(
-      publicaciones,
-      totalPublicaciones,
-      page
-    );
+    const resultHateoas = createHateoas( publicaciones, totalPublicaciones, page );
 
     res.status(200).json(resultHateoas);
   } catch (error) {
@@ -97,20 +80,17 @@ const getServices = async (req, res) => {
 
 const getServiceId = async (req, res) => {
   try {
-    const postId = parseInt(req.params.id);
-    if (!postId) {
+    const publicacion_id = parseInt(req.params.id);
+    if (!publicacion_id) {
       throw { code: 400, message: 'Id de la puclicación no proporcionado.' };
     }
 
-    const publicacion = await portalModel.getServiceId(postId);
+    const publicacion = await portalModel.getServiceId(publicacion_id);
     if (!publicacion) {
       throw { code: 400, message: 'Puclicación no encontrado.' };
     }
-    res.status(200).json({
-      ok: true,
-      message: 'puclicación encontrada.',
-      servicio: publicacion,
-    });
+
+    res.status(200).json({ ok: true, message: 'puclicación encontrada.', servicio: publicacion });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     res.status(status).json({ ok: false, message });
@@ -119,8 +99,8 @@ const getServiceId = async (req, res) => {
 
 const getServicesByUser = async (req, res) => {
   try {
-    const { usuarioId } = req.body;
-    if (!usuarioId) {
+    const { usuario_id } = req.body;
+    if (!usuario_id) {
       throw { code: 400, message: 'El Id del usuario es requerido.' };
     }
 
@@ -131,19 +111,15 @@ const getServicesByUser = async (req, res) => {
 
     const isPageValid = /^[1-9]\d*$/.test(page);
     if (!isPageValid) {
-      throw {
-        code: 400,
-        message: 'El número de página debe ser igual o mayor a 1.',
-      };
+      throw { code: 400, message: 'El número de página debe ser igual o mayor a 1.' };
     }
 
-    const { publicaciones, totalPublicaciones } =
-      await portalModel.getServicesByUser({ usuarioId, page });
-    const resultHateoas = createHateoas(
-      publicaciones,
-      totalPublicaciones,
-      page
-    );
+    const { publicaciones, totalPublicaciones } = await portalModel.getServicesByUser({ usuario_id, page });
+    if (!publicaciones || !totalPublicaciones) {
+      throw { code: 400, message: 'No hay publicaciones por mostrar.' };
+    }
+
+    const resultHateoas = createHateoas( publicaciones, totalPublicaciones, page );
 
     res.status(200).json(resultHateoas);
   } catch (error) {
@@ -154,53 +130,18 @@ const getServicesByUser = async (req, res) => {
 
 const newService = async (req, res) => {
   try {
-    const {
-      usuario_id,
-      titulo,
-      contenido,
-      imagen,
-      tipo_servicio,
-      email_contacto,
-      telefono_contacto,
-      ciudad,
-      comuna,
-    } = req.body;
+    const { usuario_id, titulo, contenido, imagen, tipo_servicio, email_contacto, telefono_contacto, ciudad, comuna } = req.body;
 
-    if (
-      !usuario_id ||
-      !titulo ||
-      !contenido ||
-      !imagen ||
-      !tipo_servicio ||
-      !email_contacto ||
-      !telefono_contacto ||
-      !ciudad ||
-      !comuna
-    ) {
-      throw {
-        code: 400,
-        message: 'Faltan campos requeridos.',
-      };
+    if ( !usuario_id || !titulo || !contenido || !imagen || !tipo_servicio || !email_contacto || !telefono_contacto || !ciudad || !comuna ) {
+      throw { code: 400, message: 'Faltan campos requeridos.' };
     }
 
-    const publicacion = await portalModel.newService(
-      usuario_id,
-      titulo,
-      contenido,
-      imagen,
-      tipo_servicio,
-      email_contacto,
-      telefono_contacto,
-      ciudad,
-      comuna
-    );
-
+    const publicacion = await portalModel.newService( usuario_id, titulo, contenido, imagen, tipo_servicio, email_contacto, telefono_contacto, ciudad, comuna );
     if (!publicacion) {
       throw { code: 400, message: 'Registro de la publicación fallida.' };
     }
-    return res
-      .status(201)
-      .json({ ok: true, message: 'Registro de la publicación exitosa.' });
+
+    return res.status(201).json({ ok: true, message: 'Registro de la publicación exitosa.' });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     return res.status(status).json({ ok: false, message });
@@ -209,56 +150,17 @@ const newService = async (req, res) => {
 
 const updateService = async (req, res) => {
   try {
-    const {
-      publicacion_id,
-      titulo,
-      contenido,
-      imagen,
-      tipo_servicio,
-      email_contacto,
-      telefono_contacto,
-      ciudad,
-      comuna,
-      likes
-    } = req.body;
-
-    if (
-      !publicacion_id ||
-      !titulo ||
-      !contenido ||
-      !imagen ||
-      !tipo_servicio ||
-      !email_contacto ||
-      !telefono_contacto ||
-      !ciudad ||
-      !comuna ||
-      !likes
-    ) {
-      throw {
-        code: 400,
-        message: 'Faltan campos requeridos.',
-      };
+    const { publicacion_id, titulo, contenido, imagen, tipo_servicio, email_contacto, telefono_contacto, ciudad, comuna, likes } = req.body;
+    if ( !publicacion_id || !titulo || !contenido || !imagen || !tipo_servicio || !email_contacto || !telefono_contacto || !ciudad || !comuna || !likes ) {
+      throw { code: 400, message: 'Faltan campos requeridos.' };
     }
 
-    const publicacion = await portalModel.updateService(
-      publicacion_id,
-      titulo,
-      contenido,
-      imagen,
-      tipo_servicio,
-      email_contacto,
-      telefono_contacto,
-      ciudad,
-      comuna,
-      likes
-    );
-
+    const publicacion = await portalModel.updateService( publicacion_id, titulo, contenido, imagen, tipo_servicio, email_contacto, telefono_contacto, ciudad, comuna, likes );
     if (!publicacion) {
       throw { code: 400, message: 'Actualización de la publicación fallida.' };
     }
-    return res
-      .status(201)
-      .json({ ok: true, message: 'Actualización de la publicación exitosa.' });
+
+    return res.status(201).json({ ok: true, message: 'Actualización de la publicación exitosa.' });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     return res.status(status).json({ ok: false, message });
@@ -267,17 +169,17 @@ const updateService = async (req, res) => {
 
 const removeService = async (req, res) => {
   try {
-    const { postId } = req.body;
-    if (!postId) {
+    const { publicacion_id } = req.body;
+    if (!publicacion_id) {
       throw { code: 400, message: 'Id de la publicación no proporcionado.' };
     }
-    const result = await portalModel.removeService(postId);
+
+    const result = await portalModel.removeService(publicacion_id);
     if (!result) {
       throw { code: 400, message: 'Publicación no encontrada.' };
     }
-    res
-      .status(200)
-      .json({ ok: true, message: 'Publicación eliminada con éxito.' });
+
+    res.status(200).json({ ok: true, message: 'Publicación eliminada con éxito.' });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     res.status(status).json({ ok: false, message });
@@ -286,8 +188,8 @@ const removeService = async (req, res) => {
 
 const getFavoritesByUser = async (req, res) => {
   try {
-    const { usuarioId } = req.body;
-    if (!usuarioId) {
+    const { usuario_id } = req.body;
+    if (!usuario_id) {
       throw { code: 400, message: 'El Id del usuario es requerido.' };
     }
 
@@ -298,19 +200,15 @@ const getFavoritesByUser = async (req, res) => {
 
     const isPageValid = /^[1-9]\d*$/.test(page);
     if (!isPageValid) {
-      throw {
-        code: 400,
-        message: 'El número de página debe ser igual o mayor a 1.',
-      };
+      throw { code: 400, message: 'El número de página debe ser igual o mayor a 1.' };
     }
 
-    const { publicaciones, totalPublicaciones } =
-      await portalModel.getFavoritesByUser({ usuarioId, page });
-    const resultHateoas = createHateoas(
-      publicaciones,
-      totalPublicaciones,
-      page
-    );
+    const { publicaciones, totalPublicaciones } = await portalModel.getFavoritesByUser({ usuario_id, page });
+    if (!publicaciones || !totalPublicaciones) {
+      throw { code: 400, message: 'No hay publicaciones por mostrar.' };
+    }
+
+    const resultHateoas = createHateoas( publicaciones, totalPublicaciones, page );
 
     res.status(200).json(resultHateoas);
   } catch (error) {
@@ -322,22 +220,16 @@ const getFavoritesByUser = async (req, res) => {
 const newFavorites = async (req, res) => {
   try {
     const { usuario_id, publicacion_id } = req.body;
-
     if (!usuario_id || !publicacion_id) {
-      throw {
-        code: 400,
-        message: 'Faltan campos requeridos.',
-      };
+      throw { code: 400, message: 'Faltan campos requeridos.' };
     }
 
     const result = await portalModel.newFavorites(usuario_id, publicacion_id);
-
     if (!result) {
       throw { code: 400, message: 'Registro de favorito fallida.' };
     }
-    return res
-      .status(201)
-      .json({ ok: true, message: 'Registro de favorito exitoso.' });
+
+    return res.status(201).json({ ok: true, message: 'Registro de favorito exitoso.' });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     return res.status(status).json({ ok: false, message });
@@ -346,23 +238,22 @@ const newFavorites = async (req, res) => {
 
 const removeFavorites = async (req, res) => {
   try {
-    const { favoritoId } = req.body;
-    if (!favoritoId) {
+    const { favorito_id } = req.body;
+    if (!favorito_id) {
       throw { code: 400, message: 'Id del Favorito no proporcionado.' };
     }
-    const result = await portalModel.removeFavoritesByUser(favoritoId);
+
+    const result = await portalModel.removeFavoritesByUser(favorito_id);
     if (!result) {
       throw { code: 400, message: 'Favorito no encontrado.' };
     }
-    res
-      .status(200)
-      .json({ ok: true, message: 'Favorito eliminado con exito.' });
+
+    res.status(200).json({ ok: true, message: 'Favorito eliminado con exito.' });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     res.status(status).json({ ok: false, message });
   }
 };
-
 
 const getProfileUser = async (req, res) => {
   try {
@@ -370,8 +261,8 @@ const getProfileUser = async (req, res) => {
     if (!usuario_id) {
       throw { code: 400, message: 'El Id del usuario es requerido.' };
     }
-    const perfil = await portalModel.getProfileUser(usuario_id);
 
+    const perfil = await portalModel.getProfileUser(usuario_id);
     if(!perfil){
       throw { code: 400, message: 'Usuario no registrado.'}
     }
@@ -385,8 +276,15 @@ const getProfileUser = async (req, res) => {
 
 const updateProfileUser = async (req, res) => {
   try {
-    const { nombre, email, contraseña, ciudad, comuna, direccion } = req.body;
-    
+    const { usuario_id, nombre, email, contraseña, ciudad, comuna, direccion } = req.body;
+    const contraseñaEncriptada = await bcrypt.hash(contraseña, 10);
+
+    const result = await portalModel.updateProfileUser( usuario_id, nombre, email, contraseñaEncriptada, ciudad, comuna, direccion );
+    if (!result) {
+      throw { code: 400, message: 'Actualización del usuario fallido.' };
+    }
+
+    res.status(201).json({ ok: true, message: 'Actualización del usuario exitoso.' });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     res.status(status).json({ ok: false, message });
