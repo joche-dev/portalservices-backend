@@ -151,7 +151,7 @@ const newService = async (req, res) => {
 const updateService = async (req, res) => {
   try {
     const { publicacion_id, titulo, contenido, imagen, tipo_servicio, email_contacto, telefono_contacto, ciudad, comuna, likes } = req.body;
-    if ( !publicacion_id || !titulo || !contenido || !imagen || !tipo_servicio || !email_contacto || !telefono_contacto || !ciudad || !comuna || !likes ) {
+    if ( !publicacion_id || !titulo || !contenido || !imagen || !tipo_servicio || !email_contacto || !telefono_contacto || !ciudad || !comuna ) {
       throw { code: 400, message: 'Faltan campos requeridos.' };
     }
 
