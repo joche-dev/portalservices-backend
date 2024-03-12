@@ -2,7 +2,7 @@ import Jwt from 'jsonwebtoken';
 import { handleError } from '../handleError/handleError.js';
 import { portalModel } from '../database/consultas.js';
 
-export const requestLogger = async (req, res, next) => {
+export const requestLogger = (req, res, next) => {
   const parametros = req.params;
   const querys = req.query;
   const body = req.body;
@@ -20,7 +20,7 @@ export const requestLogger = async (req, res, next) => {
   next();
 };
 
-export const verifyRegisterUser = async (req, res, next) => {
+export const verifyRegisterUser = (req, res, next) => {
   try {
     const { nombre, email, contraseña, ciudad, comuna } = req.body;
     if (!nombre || !email || !contraseña || !ciudad || !comuna) {
@@ -65,4 +65,13 @@ export const verifyCredentials = async (req, res, next) => {
     const { status, message } = handleError(error.code, error.message);
     res.status(status).json({ ok: false, message });
   }
+};
+
+export const configCors = (req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  next();
 };
