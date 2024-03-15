@@ -115,7 +115,7 @@ const getServicesByUser = async (req, res) => {
     }
 
     const { publicaciones, totalPublicaciones } = await portalModel.getServicesByUser({ usuario_id, page });
-       const resultHateoas = createHateoas( publicaciones, totalPublicaciones, page );
+    const resultHateoas = createHateoas( publicaciones, totalPublicaciones, page );
 
     res.status(200).json(resultHateoas);
   } catch (error) {
@@ -200,10 +200,6 @@ const getFavoritesByUser = async (req, res) => {
     }
 
     const { publicaciones, totalPublicaciones } = await portalModel.getFavoritesByUser({ usuario_id, page });
-    if (!publicaciones || !totalPublicaciones) {
-      throw { code: 400, message: 'No hay publicaciones por mostrar.' };
-    }
-
     const resultHateoas = createHateoas( publicaciones, totalPublicaciones, page );
 
     res.status(200).json(resultHateoas);
