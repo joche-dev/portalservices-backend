@@ -54,7 +54,7 @@ const register = async (req, res) => {
 
 const getServices = async (req, res) => {
   try {
-    const { page } = req.query;
+    const { page, titulo, comuna, ciudad } = req.query;
     if (!page) {
       throw { code: 400, message: 'El número de página es requerido.' };
     }
@@ -63,8 +63,7 @@ const getServices = async (req, res) => {
     if (!isPageValid) {
       throw { code: 400, message: 'El número de página debe ser igual o mayor a 1.' };
     }
-
-    const { publicaciones, totalPublicaciones } = await portalModel.getServices({ page });
+    const { publicaciones, totalPublicaciones } = await portalModel.getServices({ page, titulo, comuna, ciudad });
     if (!publicaciones || !totalPublicaciones) {
       throw { code: 400, message: 'No hay publicaciones por mostrar.' };
     }
@@ -73,6 +72,7 @@ const getServices = async (req, res) => {
 
     res.status(200).json(resultHateoas);
   } catch (error) {
+    console.log(error);
     const { status, message } = handleError(error.code, error.message);
     res.status(status).json({ ok: false, message });
   }

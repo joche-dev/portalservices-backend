@@ -41,21 +41,45 @@ const newUser = async (
   return user;
 };
 
-const getServices = async ({ limits = 8, page = 1 }) => {
-  const order = 'DESC';
+const getServices = async ({ page = 1, titulo, comuna, ciudad, limits = 8 }) => {
+  
   page = Math.max(1, page);
   const offset = (page - 1) * limits;
+  const filtros = [];
+  const valuesPosts = [];
+  const valuesTotalPost=[];
 
-  const publicacionesQuery = format(
-    'SELECT * FROM publicaciones ORDER BY publicacion_id %s LIMIT %s OFFSET %s',
-    order,
-    limits,
-    offset
-  );
-  const { rows: publicaciones } = await pool.query(publicacionesQuery);
+  const agregarFiltro = (campo, comparador, valor) => {
+    valuesPosts.push(valor);
+    valuesTotalPost.push(valor);
+    filtros.push(`${campo} ${comparador} $${valuesPosts.length}`);
+  };
+  
+  if(titulo){
+    agregarFiltro ('titulo', 'ILIKE', `%${titulo}%`);
+  }
+  if(comuna){
+    agregarFiltro ('comuna', 'ILIKE', `%${comuna}%`);
+  }
+  if(ciudad){
+    agregarFiltro ('ciudad', 'ILIKE', `%${ciudad}%`);
+  }
 
-  const totalPublicacionesQuery = format('SELECT COUNT(*) FROM publicaciones');
-  const { rows: totalRows } = await pool.query(totalPublicacionesQuery);
+  let publicacionesQuery = 'SELECT * FROM publicaciones';
+  let totalPublicacionesQuery = 'SELECT COUNT(*) FROM publicaciones';
+
+  if (filtros.length > 0) {
+    const filtro = filtros.join(' AND ');
+    valuesPosts.push(limits, offset);
+    publicacionesQuery += ` WHERE ${filtro} ORDER BY publicacion_id DESC LIMIT $${filtros.length+1} OFFSET $${filtros.length+2}`;
+    totalPublicacionesQuery += ` WHERE ${filtro}`;
+  }else{
+    publicacionesQuery += ` ORDER BY publicacion_id DESC LIMIT $1 OFFSET $2`
+    valuesPosts.push(limits, offset);
+  }
+
+  const { rows: totalRows } = await pool.query(totalPublicacionesQuery, valuesTotalPost);
+  const {rows:  publicaciones} = await pool.query(publicacionesQuery, valuesPosts);
   const totalPublicaciones = parseInt(totalRows[0].count);
 
   return { publicaciones, totalPublicaciones };
