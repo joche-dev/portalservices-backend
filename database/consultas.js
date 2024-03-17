@@ -214,10 +214,10 @@ const getFavoritesByUser = async ({ usuario_id, page = 1, limit = 8 }) => {
 };
 
 const newFavorites = async (usuario_id, publicacion_id) => {
-  values = [usuario_id, publicacion_id];
+  const values = [usuario_id, publicacion_id];
   const consulta = 'INSERT INTO favoritos values (DEFAULT, $1, $2)';
   const { rowCount } = await pool.query(consulta, values);
-
+  
   return rowCount;
 };
 
