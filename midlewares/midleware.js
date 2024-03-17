@@ -47,6 +47,7 @@ export const verifyCredentials = async (req, res, next) => {
     }
 
     const token = authorizationHeader.split('Bearer ')[1];
+
     if (!token) {
       throw { code: 401, message: 'Formato de token no válido.' };
     }

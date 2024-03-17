@@ -212,11 +212,13 @@ const getFavoritesByUser = async (req, res) => {
 const newFavorites = async (req, res) => {
   try {
     const { usuario_id, publicacion_id } = req.body;
+
     if (!usuario_id || !publicacion_id) {
       throw { code: 400, message: 'Faltan campos requeridos.' };
     }
 
     const result = await portalModel.newFavorites(usuario_id, publicacion_id);
+
     if (!result) {
       throw { code: 400, message: 'Registro de favorito fallida.' };
     }
