@@ -64,10 +64,6 @@ const getServices = async (req, res) => {
       throw { code: 400, message: 'El número de página debe ser igual o mayor a 1.' };
     }
     const { publicaciones, totalPublicaciones } = await portalModel.getServices({ page, titulo, comuna, ciudad });
-    if (!publicaciones || !totalPublicaciones) {
-      throw { code: 400, message: 'No hay publicaciones por mostrar.' };
-    }
-
     const resultHateoas = createHateoas( publicaciones, totalPublicaciones, page );
 
     res.status(200).json(resultHateoas);
