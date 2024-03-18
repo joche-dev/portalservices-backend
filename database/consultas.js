@@ -27,41 +27,35 @@ const newUser = async (nombre, email, contraseña, ciudad, comuna, direccion = '
 const getServices = async ({ page = 1, titulo, comuna, ciudad, limits = 8 }) => {
   page = Math.max(1, page);
   const offset = (page - 1) * limits;
-  const filtros = [];
-  const valuesPosts = [];
-  const valuesTotalPost=[];
+  const filters = [];
+  const values = [];
 
-  const agregarFiltro = (campo, comparador, valor) => {
-    valuesPosts.push(valor);
-    valuesTotalPost.push(valor);
-    filtros.push(`${campo} ${comparador} $${valuesPosts.length}`);
-  };
-  
-  if(titulo){
-    agregarFiltro ('titulo', 'ILIKE', `%${titulo}%`);
+  if (titulo) {
+    filters.push('titulo ILIKE $1');
+    values.push(`%${titulo}%`);
   }
-  if(comuna){
-    agregarFiltro ('comuna', 'ILIKE', `%${comuna}%`);
+  if (comuna) {
+    filters.push('comuna ILIKE $2');
+    values.push(`%${comuna}%`);
   }
-  if(ciudad){
-    agregarFiltro ('ciudad', 'ILIKE', `%${ciudad}%`);
+  if (ciudad) {
+    filters.push('ciudad ILIKE $3');
+    values.push(`%${ciudad}%`);
   }
 
-  let publicacionesQuery = 'SELECT * FROM publicaciones';
-  let totalPublicacionesQuery = 'SELECT COUNT(*) FROM publicaciones';
+  let query = 'SELECT * FROM publicaciones';
+  let countQuery = 'SELECT COUNT(*) FROM publicaciones';
 
-  if (filtros.length > 0) {
-    const filtro = filtros.join(' AND ');
-    valuesPosts.push(limits, offset);
-    publicacionesQuery += ` WHERE ${filtro} ORDER BY publicacion_id DESC LIMIT $${filtros.length+1} OFFSET $${filtros.length+2}`;
-    totalPublicacionesQuery += ` WHERE ${filtro}`;
-  }else{
-    publicacionesQuery += ` ORDER BY publicacion_id DESC LIMIT $1 OFFSET $2`
-    valuesPosts.push(limits, offset);
+  if (filters.length > 0) {
+    query += ` WHERE ${filters.join(' AND ')}`;
+    countQuery += ` WHERE ${filters.join(' AND ')}`;
   }
 
-  const { rows:  publicaciones } = await pool.query(publicacionesQuery, valuesPosts);
-  const { rows: [{ count: totalPublicaciones }] } = await pool.query(totalPublicacionesQuery, valuesTotalPost);
+  query += ' ORDER BY publicacion_id DESC LIMIT $4 OFFSET $5';
+  values.push(limits, offset);
+
+  const { rows: publicaciones } = await pool.query(query, values);
+  const { rows: [{ count: totalPublicaciones }] } = await pool.query(countQuery, values);
 
   return { publicaciones, totalPublicaciones: parseInt(totalPublicaciones) };
 };
