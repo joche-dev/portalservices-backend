@@ -1,4 +1,5 @@
 import pkg from 'pg';
+import format from 'pg-format';
 
 const { Pool } = pkg;
 
@@ -8,81 +9,128 @@ const pool = new Pool({
 
 const getUser = async (email) => {
   const consulta = 'SELECT * FROM usuarios WHERE email = $1;';
-  const { rows: [user] } = await pool.query(consulta, [email]);
+  const {
+    rows: [user],
+  } = await pool.query(consulta, [email]);
   return user;
 };
 
 const checkEmailEnabled = async (email) => {
-  const query = 'SELECT email FROM usuarios WHERE email = $1';
-  const { rowCount } = await pool.query(query, [email]);
+  const consulta = 'SELECT email FROM usuarios WHERE email = $1';
+  const { rowCount } = await pool.query(consulta, [email]);
+
   return rowCount;
 };
 
-const newUser = async (nombre, email, contraseña, ciudad, comuna, direccion = '', rol = 'user') => {
-  const query = 'INSERT INTO usuarios VALUES (DEFAULT, $1, $2, $3, $4, $5, $6, $7) RETURNING *;';
-  const { rows: [user] } = await pool.query(query, [nombre, email, contraseña, ciudad, comuna, direccion, rol]);
+const newUser = async (
+  nombre,
+  email,
+  contraseña,
+  ciudad,
+  comuna,
+  direccion = '',
+  rol = 'user'
+) => {
+  const consulta =
+    'INSERT INTO usuarios values (DEFAULT, $1, $2, $3, $4, $5, $6, $7) RETURNING *;';
+  const values = [nombre, email, contraseña, ciudad, comuna, direccion, rol];
+  const {
+    rows: [user],
+  } = await pool.query(consulta, values);
+
   return user;
 };
 
 const getServices = async ({ page = 1, titulo, comuna, ciudad, limits = 8 }) => {
+  
   page = Math.max(1, page);
   const offset = (page - 1) * limits;
-  const filters = [];
-  const values = [];
+  const filtros = [];
+  const valuesPosts = [];
+  const valuesTotalPost=[];
 
-  if (titulo) {
-    filters.push('titulo ILIKE $1');
-    values.push(`%${titulo}%`);
+  const agregarFiltro = (campo, comparador, valor) => {
+    valuesPosts.push(valor);
+    valuesTotalPost.push(valor);
+    filtros.push(`${campo} ${comparador} $${valuesPosts.length}`);
+  };
+  
+  if(titulo){
+    agregarFiltro ('titulo', 'ILIKE', `%${titulo}%`);
   }
-  if (comuna) {
-    filters.push('comuna ILIKE $2');
-    values.push(`%${comuna}%`);
+  if(comuna){
+    agregarFiltro ('comuna', 'ILIKE', `%${comuna}%`);
   }
-  if (ciudad) {
-    filters.push('ciudad ILIKE $3');
-    values.push(`%${ciudad}%`);
-  }
-
-  let query = 'SELECT * FROM publicaciones';
-  let countQuery = 'SELECT COUNT(*) FROM publicaciones';
-
-  if (filters.length > 0) {
-    query += ` WHERE ${filters.join(' AND ')}`;
-    countQuery += ` WHERE ${filters.join(' AND ')}`;
+  if(ciudad){
+    agregarFiltro ('ciudad', 'ILIKE', `%${ciudad}%`);
   }
 
-  query += ' ORDER BY publicacion_id DESC LIMIT $4 OFFSET $5';
-  values.push(limits, offset);
+  let publicacionesQuery = 'SELECT * FROM publicaciones';
+  let totalPublicacionesQuery = 'SELECT COUNT(*) FROM publicaciones';
 
-  const { rows: publicaciones } = await pool.query(query, values);
-  const { rows: [{ count: totalPublicaciones }] } = await pool.query(countQuery, values);
+  if (filtros.length > 0) {
+    const filtro = filtros.join(' AND ');
+    valuesPosts.push(limits, offset);
+    publicacionesQuery += ` WHERE ${filtro} ORDER BY publicacion_id DESC LIMIT $${filtros.length+1} OFFSET $${filtros.length+2}`;
+    totalPublicacionesQuery += ` WHERE ${filtro}`;
+  }else{
+    publicacionesQuery += ` ORDER BY publicacion_id DESC LIMIT $1 OFFSET $2`
+    valuesPosts.push(limits, offset);
+  }
 
-  return { publicaciones, totalPublicaciones: parseInt(totalPublicaciones) };
+  const { rows: totalRows } = await pool.query(totalPublicacionesQuery, valuesTotalPost);
+  const {rows:  publicaciones} = await pool.query(publicacionesQuery, valuesPosts);
+  const totalPublicaciones = parseInt(totalRows[0].count);
+
+  return { publicaciones, totalPublicaciones };
 };
 
 const getServiceId = async (publicacion_id) => {
-  const query = 'SELECT * FROM publicaciones WHERE publicacion_id = $1';
-  const { rows: [publicacion] } = await pool.query(query, [publicacion_id]);
+  const query = format(
+    'SELECT * FROM publicaciones WHERE publicacion_id = %s',
+    publicacion_id
+  );
+  const {
+    rows: [publicacion],
+  } = await pool.query(query);
+
   return publicacion;
 };
 
 const getServicesByUser = async ({ usuario_id, page = 1, limit = 8 }) => {
+  const order = 'DESC';
   page = Math.max(1, page);
   const offset = (page - 1) * limit;
-  const query = 'SELECT * FROM publicaciones WHERE usuario_id = $1 ORDER BY publicacion_id DESC LIMIT $2 OFFSET $3';
-  const queryCount = 'SELECT COUNT(*) FROM publicaciones WHERE usuario_id = %s';
+  const query =
+    'SELECT * FROM publicaciones WHERE usuario_id = %s ORDER BY publicacion_id %s LIMIT %s OFFSET %s';
 
-  const { rows: publicaciones } = await pool.query(query, [usuario_id, limit, offset]);
-  const { rows: [{ count: totalPublicaciones }] } = await pool.query(queryCount, [usuario_id]);
+  const publicacionesQuery = format(query, usuario_id, order, limit, offset);
+  const { rows: publicaciones } = await pool.query(publicacionesQuery);
 
-  return { publicaciones, totalPublicaciones: parseInt(totalPublicaciones) };
+  const totalPublicacionesQuery = format(
+    'SELECT COUNT(*) FROM publicaciones WHERE usuario_id = %s',
+    usuario_id
+  );
+  const { rows: totalRows } = await pool.query(totalPublicacionesQuery);
+  const totalPublicaciones = parseInt(totalRows[0].count);
+
+  return { publicaciones, totalPublicaciones };
 };
 
-const newService = async (usuario_id, titulo, contenido, imagen, tipo_servicio, email_contacto, telefono_contacto, ciudad, comuna) => {
+const newService = async (
+  usuario_id,
+  titulo,
+  contenido,
+  imagen,
+  tipo_servicio,
+  email_contacto,
+  telefono_contacto,
+  ciudad,
+  comuna
+) => {
   const likes = 0;
-  const fecha_publicacion = new Date().toLocaleDateString('es-CL', { timeZone: 'America/Santiago' });
-  const query = 'INSERT INTO publicaciones VALUES (DEFAULT, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)';
-  const { rowCount } = await pool.query(query, [
+  const fecha_publicacion = new Date();
+  const values = [
     usuario_id,
     titulo,
     contenido,
@@ -94,15 +142,28 @@ const newService = async (usuario_id, titulo, contenido, imagen, tipo_servicio, 
     comuna,
     likes,
     fecha_publicacion,
-  ]);
+  ];
+  const consulta =
+    'INSERT INTO publicaciones values (DEFAULT, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)';
+  const { rowCount } = await pool.query(consulta, values);
 
   return rowCount;
 };
 
-const updateService = async (publicacion_id, titulo, contenido, imagen, tipo_servicio, email_contacto, telefono_contacto, ciudad, comuna, likes) => {
-  const fecha_publicacion = new Date().toLocaleDateString('es-CL', { timeZone: 'America/Santiago' });
-  const query = 'UPDATE publicaciones SET titulo = $1, contenido = $2, imagen = $3, tipo_servicio = $4, email_contacto = $5, telefono_contacto = $6, ciudad = $7, comuna = $8, likes = $9, fecha_publicacion = $10 WHERE publicacion_id = $11';
-  const { rowCount } = await pool.query(query, [
+const updateService = async (
+  publicacion_id,
+  titulo,
+  contenido,
+  imagen,
+  tipo_servicio,
+  email_contacto,
+  telefono_contacto,
+  ciudad,
+  comuna,
+  likes
+) => {
+  const fecha_publicacion = new Date();
+  const values = [
     titulo,
     contenido,
     imagen,
@@ -114,7 +175,12 @@ const updateService = async (publicacion_id, titulo, contenido, imagen, tipo_ser
     likes,
     fecha_publicacion,
     publicacion_id,
-  ]);
+  ];
+
+  const consulta =
+    'UPDATE publicaciones SET titulo = $1, contenido = $2, imagen = $3, tipo_servicio = $4, email_contacto = $5, telefono_contacto = $6, ciudad = $7, comuna = $8, likes = $9, fecha_publicacion = $10 WHERE publicacion_id = $11';
+
+  const { rowCount } = await pool.query(consulta, values);
 
   return rowCount;
 };
@@ -127,23 +193,31 @@ const removeService = async (publicacion_id) => {
 };
 
 const getFavoritesByUser = async ({ usuario_id, page = 1, limit = 8 }) => {
+  const order = 'DESC';
   page = Math.max(1, page);
   const offset = (page - 1) * limit;
-  const query =
-    'SELECT p.* FROM favoritos AS f JOIN publicaciones AS p ON f.publicacion_id = p.publicacion_id WHERE f.usuario_id = $1 ORDER BY ppublicacion_id DESC LIMIT $2 OFFSET $3';
-  const { rows: publicaciones } = await pool.query(query, [usuario_id, limit, offset]);
-  const { rows: [{ count: totalPublicaciones }] } = await pool.query(
-    'SELECT COUNT(*) FROM favoritos WHERE usuario_id = $1',
-    [usuario_id]
-  );
 
-  return { publicaciones, totalPublicaciones: parseInt(totalPublicaciones) };
+  const query =
+    ' SELECT * FROM favoritos AS f JOIN publicaciones AS p ON f.publicacion_id = p.publicacion_id WHERE f.usuario_id = %s ORDER BY p.publicacion_id %s LIMIT %s OFFSET %s';
+
+  const publicacionesQuery = format(query, usuario_id, order, limit, offset);
+  const { rows: publicaciones } = await pool.query(publicacionesQuery);
+
+  const totalPublicacionesQuery = format(
+    'SELECT COUNT(*) FROM favoritos WHERE usuario_id = %s',
+    usuario_id
+  );
+  const { rows: totalRows } = await pool.query(totalPublicacionesQuery);
+  const totalPublicaciones = parseInt(totalRows[0].count);
+
+  return { publicaciones, totalPublicaciones };
 };
 
 const newFavorites = async (usuario_id, publicacion_id) => {
-  const query = 'INSERT INTO favoritos VALUES (DEFAULT, $1, $2)';
-  const { rowCount } = await pool.query(query, [usuario_id, publicacion_id]);
-
+  const values = [usuario_id, publicacion_id];
+  const consulta = 'INSERT INTO favoritos values (DEFAULT, $1, $2)';
+  const { rowCount } = await pool.query(consulta, values);
+  
   return rowCount;
 };
 
@@ -157,13 +231,13 @@ const removeFavoritesByUser = async (favorito_id) => {
 const getProfileUser = async (usuario_id) => {
   const query = 'SELECT * FROM usuarios WHERE usuario_id = $1';
   const { rows: perfil } = await pool.query(query, [usuario_id]);
-
   return perfil;
 };
 
 const updateProfileUser = async ( usuario_id, nombre, email, contraseña, ciudad, comuna, direccion ) => {
-  const query = 'UPDATE usuarios SET nombre = $1, email = $2, contraseña = $3, ciudad = $4, comuna = $5, direccion = $6 WHERE usuario_id = $7';
-  const { rowCount } = await pool.query(query, [nombre, email, contraseña, ciudad, comuna, direccion, usuario_id]);
+  const values = [ nombre, email, contraseña, ciudad, comuna, direccion, usuario_id ];
+  const consulta = 'UPDATE usuarios SET nombre = $1, email = $2, contraseña = $3, ciudad = $4, comuna = $5, direccion = $6 WHERE usuario_id = $7';
+  const { rowCount } = await pool.query(consulta, values);
 
   return rowCount;
 };
