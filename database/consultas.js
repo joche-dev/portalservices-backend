@@ -1,5 +1,4 @@
 import pkg from 'pg';
-import format from 'pg-format';
 
 const { Pool } = pkg;
 
