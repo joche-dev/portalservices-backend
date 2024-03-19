@@ -9,7 +9,7 @@ export const requestLogger = (req, res, next) => {
   const url = req.url;
   console.log(
     `
-      Hoy ${new Date().toLocaleDateString('es-CL', {timeZone:'America/Santiago'})}
+      Hoy ${new Date().toLocaleString('es-CL', {timeZone:'America/Santiago'})}
       Se ha recibido una consulta en la ruta ${url} 
       con los parámetros: ${JSON.stringify(parametros)}, 
       querys: ${JSON.stringify(querys)} y 

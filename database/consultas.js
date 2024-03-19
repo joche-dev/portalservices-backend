@@ -107,7 +107,7 @@ const newService = async (
   comuna
 ) => {
   const likes = 0;
-  const fecha_publicacion = new Date().toLocaleDateString('es-CL', {timeZone:'America/Santiago'});
+  const fecha_publicacion = new Date().toLocaleString('es-CL', {timeZone:'America/Santiago'});
   const values = [ usuario_id, titulo, contenido, imagen, tipo_servicio, email_contacto, telefono_contacto, ciudad, comuna, likes, fecha_publicacion
   ];
   const consulta = 'INSERT INTO publicaciones values (DEFAULT, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)';
@@ -128,7 +128,7 @@ const updateService = async (
   comuna,
   likes
 ) => {
-  const fecha_publicacion = new Date().toLocaleDateString('es-CL', {timeZone:'America/Santiago'});
+  const fecha_publicacion = new Date().toLocaleString('es-CL', {timeZone:'America/Santiago'});
   const values = [titulo, contenido, imagen, tipo_servicio, email_contacto, telefono_contacto, ciudad, comuna, likes, fecha_publicacion,    publicacion_id,
   ];
 
