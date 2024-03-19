@@ -82,17 +82,11 @@ const getServiceId = async (publicacion_id) => {
   return publicacion;
 };
 
-const getServicesByUser = async ({ usuario_id, page = 1, limit = 8 }) => {
-  page = Math.max(1, page);
-  const offset = (page - 1) * limit;
-  const consulta = 'SELECT * FROM publicaciones WHERE usuario_id = $1 ORDER BY publicacion_id DESC LIMIT $2 OFFSET $3';
-  const countQuery = 'SELECT COUNT(*) FROM publicaciones WHERE usuario_id = $1';
+const getServicesByUser = async (usuario_id) => {
+  const consulta = 'SELECT * FROM publicaciones WHERE usuario_id = $1 ORDER BY publicacion_id DESC';
+  const { rows: publicaciones } = await pool.query(consulta, [usuario_id]);
 
-  const { rows: publicaciones } = await pool.query(consulta, [usuario_id, limit, offset]);
-  const { rows: totalRows } = await pool.query(countQuery, [usuario_id]);
-  const totalPublicaciones = parseInt(totalRows[0].count);
-
-  return { publicaciones, totalPublicaciones };
+  return { publicaciones };
 };
 
 const newService = async (
@@ -144,24 +138,17 @@ const removeService = async (publicacion_id) => {
   return rowCount;
 };
 
-const getFavoritesByUser = async ({ usuario_id, page = 1, limit = 8 }) => {
-  page = Math.max(1, page);
-  const offset = (page - 1) * limit;
+const getFavoritesByUser = async (usuario_id) => {
+  const query = 'SELECT * FROM favoritos AS f JOIN publicaciones AS p ON f.publicacion_id = p.publicacion_id WHERE f.usuario_id = $1 ORDER BY p.publicacion_id DESC';
+  const { rows: publicaciones } = await pool.query(query, [usuario_id]);
 
-  const query = 'SELECT * FROM favoritos AS f JOIN publicaciones AS p ON f.publicacion_id = p.publicacion_id WHERE f.usuario_id = $1 ORDER BY p.publicacion_id DESC LIMIT $2 OFFSET $3';
-  const countQuery = 'SELECT COUNT(*) FROM favoritos WHERE usuario_id = $1';
-
-  const { rows: publicaciones } = await pool.query(query, [usuario_id, limit, offset]);
-  const { rows: totalRows } = await pool.query(countQuery, [usuario_id]);
-  const totalPublicaciones = parseInt(totalRows[0].count);
-
-  return { publicaciones, totalPublicaciones };
+  return { publicaciones };
 };
 
 const newFavorites = async (usuario_id, publicacion_id) => {
-  const consulta = 'INSERT INTO favoritos values (DEFAULT, $1, $2)';
-  const { rowCount } = await pool.query(consulta, [usuario_id, publicacion_id]);
-  return rowCount;
+  const consulta = 'INSERT INTO favoritos values (DEFAULT, $1, $2) RETURNING *;';
+  const { rows: [favorito]  } = await pool.query(consulta, [usuario_id, publicacion_id]);
+  return favorito;
 };
 
 const removeFavoritesByUser = async (favorito_id) => {

@@ -78,15 +78,15 @@ const getServiceId = async (req, res) => {
   try {
     const publicacion_id = parseInt(req.params.id);
     if (!publicacion_id) {
-      throw { code: 400, message: 'Id de la puclicación no proporcionado.' };
+      throw { code: 400, message: 'Id de la publicación no proporcionado.' };
     }
 
     const publicacion = await portalModel.getServiceId(publicacion_id);
     if (!publicacion) {
-      throw { code: 400, message: 'Puclicación no encontrado.' };
+      throw { code: 400, message: 'Publicación no encontrado.' };
     }
 
-    res.status(200).json({ ok: true, message: 'puclicación encontrada.', servicio: publicacion });
+    res.status(200).json({ ok: true, message: 'Publicación encontrada.', results: publicacion });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     res.status(status).json({ ok: false, message });
@@ -100,20 +100,9 @@ const getServicesByUser = async (req, res) => {
       throw { code: 400, message: 'El Id del usuario es requerido.' };
     }
 
-    const { page } = req.query;
-    if (!page) {
-      throw { code: 400, message: 'El número de página es requerido.' };
-    }
+    const { publicaciones } = await portalModel.getServicesByUser(usuario_id);
 
-    const isPageValid = /^[1-9]\d*$/.test(page);
-    if (!isPageValid) {
-      throw { code: 400, message: 'El número de página debe ser igual o mayor a 1.' };
-    }
-
-    const { publicaciones, totalPublicaciones } = await portalModel.getServicesByUser({ usuario_id, page });
-    const resultHateoas = createHateoas( publicaciones, totalPublicaciones, page );
-
-    res.status(200).json(resultHateoas);
+    res.status(200).json({ ok: true, message: 'Publicaciónes del usuario.', results: publicaciones });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     return res.status(status).json({ ok: false, message });
@@ -185,20 +174,9 @@ const getFavoritesByUser = async (req, res) => {
       throw { code: 400, message: 'El Id del usuario es requerido.' };
     }
 
-    const { page } = req.query;
-    if (!page) {
-      throw { code: 400, message: 'El número de página es requerido.' };
-    }
+    const { publicaciones } = await portalModel.getFavoritesByUser(usuario_id);
 
-    const isPageValid = /^[1-9]\d*$/.test(page);
-    if (!isPageValid) {
-      throw { code: 400, message: 'El número de página debe ser igual o mayor a 1.' };
-    }
-
-    const { publicaciones, totalPublicaciones } = await portalModel.getFavoritesByUser({ usuario_id, page });
-    const resultHateoas = createHateoas( publicaciones, totalPublicaciones, page );
-
-    res.status(200).json(resultHateoas);
+    res.status(200).json({ ok: true, message: 'Publicaciónes favoritas del usuario.', results: publicaciones });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     return res.status(status).json({ ok: false, message });
@@ -219,7 +197,7 @@ const newFavorites = async (req, res) => {
       throw { code: 400, message: 'Registro de favorito fallida.' };
     }
 
-    return res.status(201).json({ ok: true, message: 'Registro de favorito exitoso.' });
+    return res.status(201).json({ ok: true, message: 'Registro de favorito exitoso.', results: result });
   } catch (error) {
     const { status, message } = handleError(error.code, error.message);
     return res.status(status).json({ ok: false, message });
