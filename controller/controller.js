@@ -135,7 +135,6 @@ const newService = async (req, res) => {
 
     return res.status(201).json({ ok: true, message: 'Registro de la publicación exitosa.' });
   } catch (error) {
-    console.log(error);
     const { status, message } = handleError(error.code, error.message);
     return res.status(status).json({ ok: false, message });
   }
