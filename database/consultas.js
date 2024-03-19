@@ -146,7 +146,7 @@ const newService = async (
   const consulta =
     'INSERT INTO publicaciones values (DEFAULT, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)';
   const { rowCount } = await pool.query(consulta, values);
-
+  console.log(values);
   return rowCount;
 };
 

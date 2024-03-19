@@ -42,6 +42,7 @@ export const verifyRegisterUser = (req, res, next) => {
 export const verifyCredentials = async (req, res, next) => {
   try {
     const authorizationHeader = req.header('Authorization');
+
     if (!authorizationHeader) {
       throw { code: 401, message: 'Token no proporcionado.' };
     }
@@ -53,6 +54,7 @@ export const verifyCredentials = async (req, res, next) => {
     }
 
     const payload = Jwt.verify(token, process.env.JWT_PASSWORD);
+
     if (!payload) {
       throw { code: 401, message: 'Token invalido.' };
     }
