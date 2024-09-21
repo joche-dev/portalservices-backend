@@ -1,5 +1,4 @@
-import * as dotenv from 'dotenv';
-dotenv.config();
+import 'dotenv/config';
 import cors from 'cors';
 import express from 'express';
 import portalServiceRoutes from './routes/routes.js';
@@ -13,9 +12,9 @@ app.use(configCors)
 app.use(requestLogger);
 app.use(portalServiceRoutes);
 
+const URL_BASE = process.env.URL_BASE || 'http://localhost';
 const PORT = process.env.PORT || 3000;
-const URL_BASE = process.env.URL_BASE || 'http://localhost:3000';
 
 app.listen(PORT, () => {
-  console.log('servidor listo en', URL_BASE);
+  console.log(`servidor listo en ${URL_BASE}:${PORT}`);
 });

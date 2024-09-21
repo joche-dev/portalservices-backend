@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import Jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { createHateoas } from '../utilities/hateoas.js';
