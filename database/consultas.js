@@ -1,10 +1,4 @@
-import pkg from 'pg';
-
-const { Pool } = pkg;
-
-const pool = new Pool({
-  allowExitOnIdle: true,
-});
+import { pool } from "./conexion.js";
 
 const getUser = async (email) => {
   const consulta = 'SELECT * FROM usuarios WHERE email = $1;';

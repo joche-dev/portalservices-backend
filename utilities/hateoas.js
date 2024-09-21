@@ -1,5 +1,3 @@
-import { config } from 'dotenv';
-config();
 const URL_BASE = process.env.URL_BASE
 
 export const createHateoas = (publicaciones, totalPublicaciones, page = 1, limits = 8) => {
